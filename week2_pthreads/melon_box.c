@@ -125,7 +125,7 @@ void * farmer_routine(void * arg)
 		printf("Farmer: I have added a melon to the box. The box now contains %d melons.\n", no_of_melons);
 		
 		
-		pthread_cond_signal(&consumer_cond); //signal the consumer as the box should be full
+		//pthread_cond_signal(&consumer_cond); //signal the consumer as the box should be full
 		pthread_mutex_unlock(&melon_box_mutex);
 		
 			
@@ -136,29 +136,26 @@ void * farmer_routine(void * arg)
 
 void * consumer_routine(void * arg)
 {
-
-	while(1)
-	{
+	
+	pthread_mutex_lock(&melon_box_mutex);
 	printf("I am consumer %d.\n", *(int *)arg); //print the consumer id
 
 
-		while (no_of_melons == 0)
+		if (no_of_melons == 0)
 		{
 			printf("Oh no! the melon box is empty and I'll leave without melons!\n");
-			pthread_cond_wait(&consumer_cond, &melon_box_mutex);
+			pthread_cond_signal(&consumer_cond); //signal the farmer as the box should be empty
 		}
-		while (no_of_melons > 0)
+		if (no_of_melons > 0)
 		{
-			pthread_mutex_lock(&melon_box_mutex);
 			no_of_melons--;
-			printf("Consumer %d: I'm lucky to get one melon out of %d melons! \n", *(int *)arg, no_of_melons);
-			pthread_mutex_unlock(&melon_box_mutex);
+			printf("Consumer %d: I'm lucky to get one melon out of %d melons! \n", *(int *)arg, no_of_melons+1);
 		}
+	
+	
+	
+	pthread_mutex_unlock(&melon_box_mutex);
 	pthread_cond_signal(&consumer_cond); //signal the farmer as the box should be empty
-
-
-
-	}
-
+	pthread_exit(EXIT_SUCCESS);
 
 }
