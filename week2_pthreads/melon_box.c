@@ -12,8 +12,10 @@ void * farmer_routine(void *);
 void * consumer_routine(void *);
 
 //declare global mutex and condition variables
+pthread_mutex_t melon_box_mutex;
+pthread_cond_t consumer_cond;
 
-... //please fill in
+//please fill in
 
 
 int main(int argc, char ** argv)
@@ -40,8 +42,16 @@ int main(int argc, char ** argv)
 	scanf("%d", &consumer_rate);
 		
 	//Initialize mutex and condition variable objects 
-
-	... //please fill in
+if (pthread_mutex_init(&melon_box_mutex, NULL) != 0) {
+		fprintf(stderr, "Error: mutex init failed\n");
+		exit(1);
+	}
+	if (pthread_cond_init(&consumer_cond, NULL) != 0) {
+		fprintf(stderr, "Error: cond init failed\n");
+		exit(1);
+	}
+	
+ //please fill in
 
 	threads = malloc((no_of_consumers+1) * sizeof(pthread_t)); //total is No_Of_Consuers + 1 to include farmer
 	if(threads == NULL){
@@ -101,8 +111,25 @@ void * farmer_routine(void * arg)
 	while (1)
 	{
 		sleep(*work_pace);
-        	
-		... //please fill in
+        pthread_mutex_lock(&melon_box_mutex);
+
+
+		while (no_of_melons == melon_box_capacity)
+		{
+			printf("Farmer: the box is full containing %d melons and I'm waiting for consumers.\n", no_of_melons);
+			pthread_cond_wait(&consumer_cond, &melon_box_mutex);
+		}
+
+		
+		no_of_melons++;
+		printf("Farmer: I have added a melon to the box. The box now contains %d melons.\n", no_of_melons);
+		
+		
+		pthread_cond_signal(&consumer_cond); //signal the consumer as the box should be full
+		pthread_mutex_unlock(&melon_box_mutex);
+		
+			
+		
 
 	}
 }
@@ -110,6 +137,28 @@ void * farmer_routine(void * arg)
 void * consumer_routine(void * arg)
 {
 
-	... //please fill in
+	while(1)
+	{
+	printf("I am consumer %d.\n", *(int *)arg); //print the consumer id
+
+
+		while (no_of_melons == 0)
+		{
+			printf("Oh no! the melon box is empty and I'll leave without melons!\n");
+			pthread_cond_wait(&consumer_cond, &melon_box_mutex);
+		}
+		while (no_of_melons > 0)
+		{
+			pthread_mutex_lock(&melon_box_mutex);
+			no_of_melons--;
+			printf("Consumer %d: I'm lucky to get one melon out of %d melons! \n", *(int *)arg, no_of_melons);
+			pthread_mutex_unlock(&melon_box_mutex);
+		}
+	pthread_cond_signal(&consumer_cond); //signal the farmer as the box should be empty
+
+
+
+	}
+
 
 }
