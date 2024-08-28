@@ -212,6 +212,11 @@ void *teacher_routine(void *arg)
 	for (int i = 0; i < N_no_of_students; i++)
 	{
 		group_lineup[i] = i % M_no_of_groups;
+
+		// change to consumer producer
+
+
+
 	}
 	// shuffle student Id order to randomize group assignment
 	//  when students check what group they are in then it will be random
