@@ -251,12 +251,13 @@ void *student_routine(void *arg)
 	pthread_mutex_lock(&assigning_mutex);
 	while (all_students_arrived_flag == 0)
 	{
-		//printf("Student %d: I'm waiting for all students to be assigned to a lab.\n", *myid);
+		printf("Student %d: I'm waiting for all students to be assigned to a lab.\n", *myid);
 		pthread_cond_wait(&all_students_assigned, &assigning_mutex);
 	}
 	pthread_mutex_unlock(&assigning_mutex);
 	// all students have been assigned
 	// each student can get their group id now.
+	printf("Student %d: I am in group %d.\n", *myid, group_lineup[*myid]);
 
 	return NULL;
 }
