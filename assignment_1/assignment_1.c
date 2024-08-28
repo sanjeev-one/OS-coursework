@@ -28,11 +28,26 @@ pthread_mutex_t assigning_mutex = PTHREAD_MUTEX_INITIALIZER; // static initializ
 pthread_cond_t all_students_arrived, all_students_assigned, group_id_produced, group_id_consumed, teacher_ready, student_arrived;
 int all_students_arrived_flag = 0;
 
+void shuffle(int *array, int n)
+{
+	for (int i = 0; i < n - 1; i++)
+	{
+		// Generate a random index j such that i <= j < n
+		int j = i + rand() / (RAND_MAX / (n - i) + 1);
+
+		// Swap array[i] with array[j]
+		int temp = array[i];
+		array[i] = array[j];
+		array[j] = temp;
+	}
+}
+
 int main(int argc, char **argv)
 {
 	pthread_t *threads; // system thread id
 	int rc;
 	int *t_ids; // user-defined thread id
+	int k;
 
 	// ask for the total number of students.
 	printf("Enter N: the total number of students in the class: ");
@@ -62,7 +77,6 @@ int main(int argc, char **argv)
 		perror("Failed to allocate memory");
 		return 1;
 	}
-
 	// Initialize the array elements to 0
 	for (int i = 0; i < N_no_of_students; i++)
 	{
@@ -118,7 +132,7 @@ int main(int argc, char **argv)
 	}
 
 	// create the teacher thread.
-	rc = pthread_create(&threads[0], NULL, teacher_routine, ); //(void *)&farmer_pace);
+	rc = pthread_create(&threads[0], NULL, teacher_routine, NULL); //(void *)&farmer_pace);
 	if (rc)
 	{
 		printf("ERROR; return code from pthread_create() (teacher) is %d\n", rc);
@@ -127,7 +141,7 @@ int main(int argc, char **argv)
 
 	// create student threads
 
-	for (k = 1; k < N_no_of_students; k++)
+	for (k = 0; k < N_no_of_students; k++)
 	{
 
 		t_ids[k] = k;
@@ -136,7 +150,7 @@ int main(int argc, char **argv)
 		{
 			printf("ERROR; return code from pthread_create() (student) is %d\n", rc);
 			exit(-1);
-		}
+		} }
 
 		// join threads
 		//  join student threads.
@@ -161,104 +175,81 @@ int main(int argc, char **argv)
 		// exit(0);
 	}
 
-	void *teacher_routine(void *arg)
+
+void *teacher_routine(void *arg)
+{
+
+	// find the group size
+	//   Each group will have N/M
+	// students if N is divisible by M. If N is not divisible by M, the first N%M groups will
+	// have ⌊N/M⌋+1 students each and the remaining groups will have ⌊N/M⌋ students each.//
+	int group_size = N_no_of_students / M_no_of_groups;
+	int remaining_students = N_no_of_students % M_no_of_groups;
+	if (remaining_students != 0)
+	{
+		group_size++;
+	} // todo fix
+
+	printf("Teacher: I'm waiting for all students to arrive.\n");
+	pthread_mutex_lock(&arriving_mutex);
+	while (no_of_students_arrived < N_no_of_students)
 	{
 
-		// find the group size
-		//   Each group will have N/M
-		// students if N is divisible by M. If N is not divisible by M, the first N%M groups will
-		// have ⌊N/M⌋+1 students each and the remaining groups will have ⌊N/M⌋ students each.//
-		int group_size = N_no_of_students / M_no_of_groups;
-		int remaining_students = N_no_of_students % M_no_of_groups;
-		if (remaining_students != 0)
-		{
-			group_size++;
-		} // todo fix
-
-		printf("Teacher: I'm waiting for all students to arrive.\n");
-		pthread_mutex_lock(&arriving_mutex);
-		while (no_of_students_arrived < N_no_of_students)
-		{
-
-			pthread_cond_wait(&student_arrived, &arriving_mutex);
-		}
-		pthread_mutex_unlock(&arriving_mutex);
-
-		// all the students have arrived
-
-		pthread_mutex_lock(&assigning_mutex);
-
-		// wait for all students to be assigned
-		// while (no_of_students_arrived == N_no_of_students) // the lineup is full
-		//	{
-		printf("  Teacher: Iblah blah assign the students  ve.\n");
-		// each student group id is the mod of their position (student id) with M
-		// 1 1 1 1 1 1 1 , N = 7, M = 3 , n/m = 2 + 1, 3 2. 2; 0 1 2 0 1 2 0
-		for (int i = 0; i < N_no_of_students; i++)
-		{
-			group_lineup[i] = i % M_no_of_groups;
-		}
-		// shuffle student Id order to randomize group assignment
-		//  when students check what group they are in then it will be random
-		//  group lineup index is the student id and the value is what group the student is in
-		shuffle(group_lineup, N_no_of_students);
-
-		//}
-		pthread_cond_signal(&all_students_assigned, &assigning_mutex);
-		all_students_arrived_flag = 1;
-
-		pthread_mutex_unlock(&assigning_mutex);
+		pthread_cond_wait(&student_arrived, &arriving_mutex);
 	}
+	pthread_mutex_unlock(&arriving_mutex);
 
-	void *student_routine(void *arg)
+	// all the students have arrived
+
+	pthread_mutex_lock(&assigning_mutex);
+
+	// wait for all students to be assigned
+	// while (no_of_students_arrived == N_no_of_students) // the lineup is full
+	//	{
+	printf("  Teacher: Iblah blah assign the students  ve.\n");
+	// each student group id is the mod of their position (student id) with M
+	// 1 1 1 1 1 1 1 , N = 7, M = 3 , n/m = 2 + 1, 3 2. 2; 0 1 2 0 1 2 0
+	for (int i = 0; i < N_no_of_students; i++)
 	{
-		int *myid;
-		myid = (int *)arg;
-		printf("Student %d: I have arrived and wait for being assigned to a group.\n", *myid);
-		pthread_mutex_lock(&arriving_mutex);
-		no_of_students_arrived++;
-		pthread_cond_signal(&student_arrived);
-
-		pthread_mutex_unlock(&arriving_mutex);
-
-		// wait for all students to be assigned
-
-		// wait for the teacher to be ready
-
-		pthread_mutex_lock(&assigning_mutex);
-		while (all_students_arrived_flag == 0)
-		{
-			pthread_cond_wait(&all_students_assigned, &assigning_mutex);
-		}
-		pthread_mutex_unlock(&assigning_mutex);
-		// all students have been assigned
-		// each student can get their group id now.
+		group_lineup[i] = i % M_no_of_groups;
 	}
+	// shuffle student Id order to randomize group assignment
+	//  when students check what group they are in then it will be random
+	//  group lineup index is the student id and the value is what group the student is in
+	shuffle(group_lineup, N_no_of_students);
+
+	//}
+	pthread_cond_signal(&all_students_assigned);
+	all_students_arrived_flag = 1;
+
+	pthread_mutex_unlock(&assigning_mutex);
+
+	return NULL;
 }
 
-// check if all elements in the array are 1
-// bool is_all_ones(int arr[], int size)
-// {
-// 	for (int i = 0; i < size; i++)
-// 	{
-// 		if (arr[i] != 1)
-// 		{
-// 			return false; // If any element is not 1, return false
-// 		}
-// 	}
-// 	return true; // If all elements are 1, return true
-// }
-
-void shuffle(int *array, int n)
+void *student_routine(void *arg)
 {
-	for (int i = 0; i < n - 1; i++)
-	{
-		// Generate a random index j such that i <= j < n
-		int j = i + rand() / (RAND_MAX / (n - i) + 1);
+	int *myid;
+	myid = (int *)arg;
+	printf("Student %d: I have arrived and wait for being assigned to a group.\n", *myid);
+	pthread_mutex_lock(&arriving_mutex);
+	no_of_students_arrived++;
+	pthread_cond_signal(&student_arrived);
 
-		// Swap array[i] with array[j]
-		int temp = array[i];
-		array[i] = array[j];
-		array[j] = temp;
+	pthread_mutex_unlock(&arriving_mutex);
+
+	// wait for all students to be assigned
+
+
+	pthread_mutex_lock(&assigning_mutex);
+	while (all_students_arrived_flag == 0)
+	{
+		//printf("Student %d: I'm waiting for all students to be assigned to a lab.\n", *myid);
+		pthread_cond_wait(&all_students_assigned, &assigning_mutex);
 	}
+	pthread_mutex_unlock(&assigning_mutex);
+	// all students have been assigned
+	// each student can get their group id now.
+
+	return NULL;
 }
