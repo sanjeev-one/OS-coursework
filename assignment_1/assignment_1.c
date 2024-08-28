@@ -217,6 +217,13 @@ void *teacher_routine(void *arg)
 	//  when students check what group they are in then it will be random
 	//  group lineup index is the student id and the value is what group the student is in
 	shuffle(group_lineup, N_no_of_students);
+	printf("Teacher: I am shuffling.\n");
+	for (int i = 0; i < N_no_of_students; i++)
+	{
+		printf("Student %d is assigned to group %d\n", i, group_lineup[i]);
+
+	}
+	printf("Teacher: I have assigned all students to a group.\n");
 
 	//}
 	pthread_cond_signal(&all_students_assigned);
