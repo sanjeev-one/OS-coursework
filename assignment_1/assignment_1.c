@@ -150,31 +150,31 @@ int main(int argc, char **argv)
 		{
 			printf("ERROR; return code from pthread_create() (student) is %d\n", rc);
 			exit(-1);
-		} }
-
-		// join threads
-		//  join student threads.
-		for (k = 1; k < N_no_of_students; k++)
-		{
-			pthread_join(threads[k], NULL);
 		}
-		// todo do i need to join teacher thread? - or no bc students wait for teacher to be done
-		//  terminate the teacher thread using pthread_cancel().
-		pthread_cancel(threads[0]);
-
-		// deallocate allocated memory
-		free(threads);
-		free(t_ids);
-
-		// destroy mutex and condition variable objects
-		// pthread_mutex_destroy(&melon_box_mutex);
-		// pthread_cond_destroy(&consumer_cond);
-
-		pthread_exit(EXIT_SUCCESS);
-
-		// exit(0);
 	}
 
+	// join threads
+	//  join student threads.
+	for (k = 1; k < N_no_of_students; k++)
+	{
+		pthread_join(threads[k], NULL);
+	}
+	// todo do i need to join teacher thread? - or no bc students wait for teacher to be done
+	//  terminate the teacher thread using pthread_cancel().
+	pthread_cancel(threads[0]);
+
+	// deallocate allocated memory
+	free(threads);
+	free(t_ids);
+
+	// destroy mutex and condition variable objects
+	// pthread_mutex_destroy(&melon_box_mutex);
+	// pthread_cond_destroy(&consumer_cond);
+
+	pthread_exit(EXIT_SUCCESS);
+
+	// exit(0);
+}
 
 void *teacher_routine(void *arg)
 {
@@ -221,12 +221,11 @@ void *teacher_routine(void *arg)
 	for (int i = 0; i < N_no_of_students; i++)
 	{
 		printf("Student %d is assigned to group %d\n", i, group_lineup[i]);
-
 	}
 	printf("Teacher: I have assigned all students to a group.\n");
 
 	//}
-	pthread_cond_signal(&all_students_assigned);
+	pthread_cond_broadcast(&all_students_assigned);
 	all_students_arrived_flag = 1;
 
 	pthread_mutex_unlock(&assigning_mutex);
@@ -246,7 +245,6 @@ void *student_routine(void *arg)
 	pthread_mutex_unlock(&arriving_mutex);
 
 	// wait for all students to be assigned
-
 
 	pthread_mutex_lock(&assigning_mutex);
 	while (all_students_arrived_flag == 0)
