@@ -13,13 +13,16 @@ int T_time_limit;	  // time limit for the lab
 
 int *class_lineup; // array to store the lineup of students
 
+int *group_lineup; // array to store the groupid of students
+
 int no_of_students_arrived = 0; // number of students arrived
 
 void *teacher_routine(void *);
 void *student_routine(void *);
 
 // declare global mutex and condition variables
-pthread_mutex_t arriving_mutex = PTHREAD_MUTEX_INITIALIZER; // static initialization
+pthread_mutex_t arriving_mutex = PTHREAD_MUTEX_INITIALIZER;	 // static initialization
+pthread_mutex_t assigning_mutex = PTHREAD_MUTEX_INITIALIZER; // static initialization
 
 // condition varibles - all_students_arrived, all_students_assigned, one_student_assigned,
 pthread_cond_t all_students_arrived, all_students_assigned, group_id_produced, group_id_consumed, teacher_ready, student_arrived;
@@ -64,6 +67,21 @@ int main(int argc, char **argv)
 	for (int i = 0; i < N_no_of_students; i++)
 	{
 		class_lineup[i] = 0;
+	}
+
+	// Declare an array of size M and initialize all elements to 0
+	// Dynamically allocate memory for the group id array
+	group_lineup = (int *)malloc(N_no_of_students * sizeof(int));
+	if (group_lineup == NULL)
+	{
+		perror("Failed to allocate memory");
+		return 1;
+	}
+
+	// Initialize the array elements to 0
+	for (int i = 0; i < N_no_of_students; i++)
+	{
+		group_lineup[i] = 0;
 	}
 
 	// Initialize condition variable objects //todo add more
@@ -158,38 +176,38 @@ int main(int argc, char **argv)
 		} // todo fix
 
 		printf("Teacher: I'm waiting for all students to arrive.\n");
-
+		pthread_mutex_lock(&arriving_mutex);
 		while (no_of_students_arrived < N_no_of_students)
 		{
 
-			pthread_mutex_lock(&arriving_mutex);
 			pthread_cond_wait(&student_arrived, &arriving_mutex);
-			pthread_mutex_unlock(&arriving_mutex);
 		}
+		pthread_mutex_unlock(&arriving_mutex);
 
-		// all the studetns have arrived
+		// all the students have arrived
 
 		pthread_mutex_lock(&assigning_mutex);
 
 		// wait for all students to be assigned
-		while
-			!is_all_ones(class_lineup, N_no_of_students) // the box is full
-			{
-				printf("  Teacher: Iblah blah assign the students  ve.\n");
-				// pthread_cond_wait(&all_students_arrived, &arriving_mutex);
-			}
-		pthread_cond_signal(&all_students_arrived);
+		// while (no_of_students_arrived == N_no_of_students) // the lineup is full
+		//	{
+		printf("  Teacher: Iblah blah assign the students  ve.\n");
+		// each student group id is the mod of their position (student id) with M
+		// 1 1 1 1 1 1 1 , N = 7, M = 3 , n/m = 2 + 1, 3 2. 2; 0 1 2 0 1 2 0
+		for (int i = 0; i < N_no_of_students; i++)
+		{
+			group_lineup[i] = i % M_no_of_groups;
+		}
+		// shuffle student Id order to randomize group assignment
+		//  when students check what group they are in then it will be random
+		//  group lineup index is the student id and the value is what group the student is in
+		shuffle(group_lineup, N_no_of_students);
+
+		//}
+		pthread_cond_signal(&all_students_assigned, &assigning_mutex);
+		all_students_arrived_flag = 1;
 
 		pthread_mutex_unlock(&assigning_mutex);
-
-		sleep(*work_pace);
-
-		if (direction == 0) // arrived at the southern bank
-			printf("boat has arrived at the southern bank.\n");
-		else // arrived at the northen bank
-			printf("boat has arrived at the northern bank.\n");
-
-		direction = (direction + 1) % 2; // change the direction
 	}
 
 	void *student_routine(void *arg)
@@ -207,29 +225,40 @@ int main(int argc, char **argv)
 
 		// wait for the teacher to be ready
 
-		if (no_of_melons == 0) // the box is empty
+		pthread_mutex_lock(&assigning_mutex);
+		while (all_students_arrived_flag == 0)
 		{
-			printf("Consumer %d: Oh no! the melon box is empty and I'll leave without melons!\n", *myid);
-			pthread_mutex_unlock(&melon_box_mutex);
-			pthread_exit(EXIT_SUCCESS);
+			pthread_cond_wait(&all_students_assigned, &assigning_mutex);
 		}
-		printf("Consumer %d: I'm lucky to get one melon out of %d melons!\n", *myid, no_of_melons);
-		no_of_melons--;						 // take one melon from the box
-		pthread_cond_signal(&consumer_cond); // signal the farmer one melon is taken from the box
-		pthread_mutex_unlock(&melon_box_mutex);
-		pthread_exit(EXIT_SUCCESS);
+		pthread_mutex_unlock(&assigning_mutex);
+		// all students have been assigned
+		// each student can get their group id now.
 	}
 }
 
 // check if all elements in the array are 1
-bool is_all_ones(int arr[], int size)
+// bool is_all_ones(int arr[], int size)
+// {
+// 	for (int i = 0; i < size; i++)
+// 	{
+// 		if (arr[i] != 1)
+// 		{
+// 			return false; // If any element is not 1, return false
+// 		}
+// 	}
+// 	return true; // If all elements are 1, return true
+// }
+
+void shuffle(int *array, int n)
 {
-	for (int i = 0; i < size; i++)
+	for (int i = 0; i < n - 1; i++)
 	{
-		if (arr[i] != 1)
-		{
-			return false; // If any element is not 1, return false
-		}
+		// Generate a random index j such that i <= j < n
+		int j = i + rand() / (RAND_MAX / (n - i) + 1);
+
+		// Swap array[i] with array[j]
+		int temp = array[i];
+		array[i] = array[j];
+		array[j] = temp;
 	}
-	return true; // If all elements are 1, return true
 }
