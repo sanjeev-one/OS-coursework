@@ -11,8 +11,6 @@ int M_no_of_groups;	  // total number of groups
 int K_no_of_tutors;	  // total number of tutors / lab rooms
 int T_time_limit;	  // time limit for the lab
 
-int *class_lineup; // array to store the lineup of students
-
 int *group_lineup; // array to store the groupid of students
 
 int no_of_students_arrived = 0; // number of students arrived
@@ -70,20 +68,6 @@ int main(int argc, char **argv)
 	printf("\n\n");
 
 	// Declare an array of size M and initialize all elements to 0
-	// Dynamically allocate memory for the class_lineup array
-	class_lineup = (int *)malloc(N_no_of_students * sizeof(int));
-	if (class_lineup == NULL)
-	{
-		perror("Failed to allocate memory");
-		return 1;
-	}
-	// Initialize the array elements to 0
-	for (int i = 0; i < N_no_of_students; i++)
-	{
-		class_lineup[i] = 0;
-	}
-
-	// Declare an array of size M and initialize all elements to 0
 	// Dynamically allocate memory for the group id array
 	group_lineup = (int *)malloc(N_no_of_students * sizeof(int));
 	if (group_lineup == NULL)
@@ -95,7 +79,7 @@ int main(int argc, char **argv)
 	// Initialize the array elements to 0
 	for (int i = 0; i < N_no_of_students; i++)
 	{
-		group_lineup[i] = 0;
+		group_lineup[i] = -1;
 	}
 
 	// Initialize condition variable objects //todo add more
@@ -214,26 +198,23 @@ void *teacher_routine(void *arg)
 		group_lineup[i] = i % M_no_of_groups;
 
 		// change to consumer producer
-
-
-
+		printf("Teacher: Student %d is assigned to group %d and cond signaled\n", i, group_lineup[i]);
+		pthread_cond_broadcast(&all_students_assigned);
 	}
+
 	// shuffle student Id order to randomize group assignment
 	//  when students check what group they are in then it will be random
 	//  group lineup index is the student id and the value is what group the student is in
 	shuffle(group_lineup, N_no_of_students);
 	printf("Teacher: I am shuffling.\n");
-	for (int i = 0; i < N_no_of_students; i++)
-	{
-		printf("Student %d is assigned to group %d\n", i, group_lineup[i]);
-	}
+	pthread_mutex_unlock(&assigning_mutex);
+
 	printf("Teacher: I have assigned all students to a group.\n");
 
 	//}
-	pthread_cond_broadcast(&all_students_assigned);
-	all_students_arrived_flag = 1;
+	//pthread_cond_broadcast(&all_students_assigned);
+	//all_students_arrived_flag = 1;
 
-	pthread_mutex_unlock(&assigning_mutex);
 
 	return NULL;
 }
@@ -252,15 +233,13 @@ void *student_routine(void *arg)
 	// wait for all students to be assigned
 
 	pthread_mutex_lock(&assigning_mutex);
-	while (all_students_arrived_flag == 0)
+	while (group_lineup[*myid] == -1) //wait till the array slot is not -1
 	{
-		printf("Student %d: I'm waiting for all students to be assigned to a lab.\n", *myid);
+		printf("Student %d: I'm waiting to be signaled to check if im assigned to a lab.(group id is %d)\n", *myid, group_lineup[*myid]);
 		pthread_cond_wait(&all_students_assigned, &assigning_mutex);
 	}
 	pthread_mutex_unlock(&assigning_mutex);
-	// all students have been assigned
-	// each student can get their group id now.
-	printf("Student %d: I am in group %d.\n", *myid, group_lineup[*myid]);
+	printf("Student %d: I am in group %d.\n", *myid, group_lineup[*myid]);	// this thread have been assigned
 
 	return NULL;
 }
