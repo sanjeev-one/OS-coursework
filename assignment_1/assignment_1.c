@@ -25,8 +25,12 @@ pthread_mutex_t arriving_mutex = PTHREAD_MUTEX_INITIALIZER;	 // static initializ
 pthread_mutex_t assigning_mutex = PTHREAD_MUTEX_INITIALIZER; // static initialization
 
 // condition varibles - all_students_arrived, all_students_assigned, one_student_assigned,
-pthread_cond_t all_students_arrived, all_students_assigned, group_id_produced, group_id_consumed, teacher_ready, student_arrived, id_recieved;
-int all_students_arrived_flag = 0;
+pthread_cond_t  all_students_assigned, student_arrived, id_recieved;
+
+//part 2 vars
+
+pthread_mutex_t lab_room_mutex = PTHREAD_MUTEX_INITIALIZER; // static initialization
+pthread_cond_t lab_room_available; // static initialization
 
 void shuffle(int *array, int n)
 {
@@ -85,12 +89,7 @@ int main(int argc, char **argv)
 	}
 
 	// Initialize condition variable objects //todo add more
-	rc = pthread_cond_init(&all_students_arrived, NULL);
-	if (rc)
-	{
-		printf("ERROR; return code from pthread_cond_init() is %d\n", rc);
-		exit(-1);
-	}
+
 	rc = pthread_cond_init(&all_students_assigned, NULL);
 	if (rc)
 	{
@@ -109,6 +108,16 @@ int main(int argc, char **argv)
 		printf("ERROR; return code from pthread_cond_init() is %d\n", rc);
 		exit(-1);
 	}
+
+	//part 2
+
+	rc = pthread_cond_init(&lab_room_available, NULL);
+	if (rc)
+	{
+		printf("ERROR; return code from pthread_cond_init() is %d\n", rc);
+		exit(-1);
+	}
+
 	// todo add tutors
 	threads = malloc((N_no_of_students + 1) * sizeof(pthread_t)); // total is no of students + 1 to include teacher
 	if (threads == NULL)
@@ -237,8 +246,24 @@ void *teacher_routine(void *arg)
 
 	//}
 	//pthread_cond_broadcast(&all_students_assigned);
-	//all_students_arrived_flag = 1;
+/////////////////////////////////////////////////
+ /// part 2
 
+ //group id assignment to student - you have done in Exercise 3
+int group_id_for_lab = 0; //todo move
+while (group_id_for_lab < M_no_of_groups){
+//wait for lab room to become available
+printf("Teacher: I’m waiting for lab room to become available\n");
+//signal tutor to take group gid for exercise
+//signal students in group gid to enter and start exercise
+printf("Teacher: The lab is now available. Students in group %d can enter
+the room and start your lab exercise.\n", gid);
+gid++;
+}
+//signal tutor to exit
+printf("Teacher: There are no students waiting. Tutor, you can go home
+now\n");
+printf("Teacher: I can now go home.\n");
 
 	return NULL;
 }
@@ -266,6 +291,49 @@ void *student_routine(void *arg)
 	printf("Student %d: I am in group %d.\n", *myid, group_lineup[*myid]);	// this thread have been assigned
 	pthread_cond_signal(&id_recieved);
 	pthread_mutex_unlock(&assigning_mutex);
+
+  	//part 2
+
+	//group id assignment from teacher – you have done in Exercise 3
+//wait for teacher to call to enter lab and conduct exercise
+printf("Student %d in group %d: My group is called. I will enter the lab
+room now.\n", *my_sid, my_gid);
+//signal tutor after all students in group are in lab
+//wait for tutor to call the end of lab exercise
+printf("Student %d in group %d: Thanks Tutor. Bye!\n", *my_sid, my_gid);
+//signal tutor the room is vacated
+
+
+
+
+	return NULL;
+}
+
+void * tutor_routine(void *arg){
+	while(1){
+	//wait for teacher to assign a group of students
+	printf("Tutor: The lab room is vacated and ready for one group\n");
+
+	//get group id
+//if signalled by teacher to exit
+printf("Tutor: Thanks Teacher. Bye!\n");
+exit
+//wait for all students in group gid to enter room
+printf("Tutor: All students in group %d have entered the room. You can
+start your exercise now.\n", gid);
+//students in group gid conduct the lab exercise
+//signal students the end of exercise
+printf("Tutor: Students in group %d have completed the lab exercise in %d
+units of time. You may leave this room now.\n", gid, ex_time);
+//wait for lab to become empty
+//signal teacher the room is vacated
+
+
+
+
+
+
+	}
 
 	return NULL;
 }
