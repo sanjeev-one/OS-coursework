@@ -28,10 +28,44 @@ pthread_mutex_t assigning_mutex = PTHREAD_MUTEX_INITIALIZER; // static initializ
 pthread_cond_t  all_students_assigned, student_arrived, id_recieved;
 
 //part 2 vars
-int *lab_groups_buffer; // array to store the group buffer of students
 pthread_mutex_t lab_room_mutex = PTHREAD_MUTEX_INITIALIZER; // static initialization
 pthread_cond_t lab_room_available; // static initialization
 int current_lab_room = 0; // counter for lab rooms
+
+
+int *group_to_queue_map; // New array to map group ID to queue ID
+
+int *lab_queue; // queue to track active labs
+pthread_mutex_t queue_mutex = PTHREAD_MUTEX_INITIALIZER;
+int queue_front = 0;
+int queue_rear = -1;
+int queue_size = 0;
+bool is_queue_empty() {
+    return queue_size == 0;
+}
+
+bool is_queue_full() {
+    return queue_size == K_no_of_tutors;
+}
+
+void enqueue(int group_id) {
+    if (!is_queue_full()) {
+        queue_rear = (queue_rear + 1) % K_no_of_tutors;
+        lab_queue[queue_rear] = group_id;
+        queue_size++;
+    }
+}
+
+int dequeue() {
+    int group_id = -1;
+    if (!is_queue_empty()) {
+        group_id = lab_queue[queue_front];
+        queue_front = (queue_front + 1) % K_no_of_tutors;
+        queue_size--;
+    }
+    return group_id;
+}
+
 
 void shuffle(int *array, int n)
 {
@@ -89,11 +123,26 @@ int main(int argc, char **argv)
 		group_lineup[i] = -1;
 	}
 
-		// Initialize the array elements to -1
-	for (int i = 0; i < K_no_of_tutors; i++)
-	{
-		lab_groups_buffer[i] = -1;
-	}
+	 // Allocate lab_queue dynamically
+    lab_queue = malloc(K_no_of_tutors * sizeof(int));
+    if (lab_queue == NULL) {
+        perror("Failed to allocate memory for lab_queue");
+        return 1;
+    }
+	
+
+	// Allocate group_to_queue_map
+    group_to_queue_map = malloc(M_no_of_groups * sizeof(int));
+    if (group_to_queue_map == NULL) {
+        perror("Failed to allocate memory for group_to_queue_map");
+        free(lab_queue); // Don't forget to free lab_queue if this allocation fails
+        return 1;
+    }
+
+    // Initialize group_to_queue_map to -1 (indicating no queue assigned)
+    for (int i = 0; i < M_no_of_groups; i++) {
+        group_to_queue_map[i] = -1;
+    }
 
 	// Initialize condition variable objects //todo add more
 
@@ -302,11 +351,16 @@ void *student_routine(void *arg)
 
 	//group id assignment from teacher – you have done in Exercise 3
 //wait for teacher to call to enter lab and conduct exercise
-printf("Student %d in group %d: My group is called. I will enter the lab
-room now.\n", *my_sid, my_gid);
+	pthread_mutex_lock(&assigning_mutex);
+
+	printf("Student %d in group %d: My group is called. I will enter the lab room now.\n", *myid, group_lineup[*myid]);
+	pthread_mutex_unlock(&assigning_mutex);
+
 //signal tutor after all students in group are in lab
 //wait for tutor to call the end of lab exercise
-printf("Student %d in group %d: Thanks Tutor. Bye!\n", *my_sid, my_gid);
+	printf("Student %d in group %d: Thanks Tutor. Bye!\n", *myid, group_lineup[*myid]);
+	pthread_mutex_unlock(&assigning_mutex);
+
 //signal tutor the room is vacated
 
 
