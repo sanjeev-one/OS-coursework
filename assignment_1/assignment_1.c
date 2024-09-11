@@ -28,9 +28,10 @@ pthread_mutex_t assigning_mutex = PTHREAD_MUTEX_INITIALIZER; // static initializ
 pthread_cond_t  all_students_assigned, student_arrived, id_recieved;
 
 //part 2 vars
-
+int *lab_groups_buffer; // array to store the group buffer of students
 pthread_mutex_t lab_room_mutex = PTHREAD_MUTEX_INITIALIZER; // static initialization
 pthread_cond_t lab_room_available; // static initialization
+int current_lab_room = 0; // counter for lab rooms
 
 void shuffle(int *array, int n)
 {
@@ -82,10 +83,16 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	// Initialize the array elements to 0
+	// Initialize the array elements to -1
 	for (int i = 0; i < N_no_of_students; i++)
 	{
 		group_lineup[i] = -1;
+	}
+
+		// Initialize the array elements to -1
+	for (int i = 0; i < K_no_of_tutors; i++)
+	{
+		lab_groups_buffer[i] = -1;
 	}
 
 	// Initialize condition variable objects //todo add more
@@ -250,8 +257,7 @@ void *teacher_routine(void *arg)
  /// part 2
 
  //group id assignment to student - you have done in Exercise 3
-int group_id_for_lab = 0; //todo move
-while (group_id_for_lab < M_no_of_groups){
+while (current_lab_room < M_no_of_groups){
 //wait for lab room to become available
 printf("Teacher: I’m waiting for lab room to become available\n");
 //signal tutor to take group gid for exercise
