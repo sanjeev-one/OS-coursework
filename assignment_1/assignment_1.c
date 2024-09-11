@@ -28,18 +28,31 @@ pthread_mutex_t assigning_mutex = PTHREAD_MUTEX_INITIALIZER; // static initializ
 pthread_cond_t  all_students_assigned, student_arrived, id_recieved;
 
 //part 2 vars
-pthread_mutex_t lab_room_mutex = PTHREAD_MUTEX_INITIALIZER; // static initialization
-pthread_cond_t lab_room_available; // static initialization
+pthread_mutex_t lab_room_map_mutex = PTHREAD_MUTEX_INITIALIZER; // static initialization
+pthread_mutex_t lab_room_size_full = PTHREAD_MUTEX_INITIALIZER; // static initialization
+pthread_cond_t lab_room_available, students_enter_lab, tutor_go_home; // static initialization
 int current_lab_room = 0; // counter for lab rooms
 
 
-int *group_to_queue_map; // New array to map group ID to queue ID
-
+int *group_to_lab_map; // New array to map group ID(index) to lab ID (value)
+int *lab_to_group_map; // New array to map lab ID(index) to group ID (value)
+int *lab_room_capacity; // New array to store the number of students in each lab room
 int *lab_queue; // queue to track active labs
 pthread_mutex_t queue_mutex = PTHREAD_MUTEX_INITIALIZER;
 int queue_front = 0;
 int queue_rear = -1;
 int queue_size = 0;
+
+int group_size(int group_id) {
+	int group_size = N_no_of_students / M_no_of_groups;
+	int remaining_students = N_no_of_students % M_no_of_groups;
+	if (remaining_students != 0) {
+		group_size++;
+	}
+	return group_size;
+}
+
+
 bool is_queue_empty() {
     return queue_size == 0;
 }
@@ -131,17 +144,47 @@ int main(int argc, char **argv)
     }
 	
 
-	// Allocate group_to_queue_map
-    group_to_queue_map = malloc(M_no_of_groups * sizeof(int));
-    if (group_to_queue_map == NULL) {
-        perror("Failed to allocate memory for group_to_queue_map");
+	// Allocate group_to_lab_map
+    group_to_lab_map = malloc(M_no_of_groups * sizeof(int));
+    if (group_to_lab_map == NULL) {
+        perror("Failed to allocate memory for group_to_lab_map");
         free(lab_queue); // Don't forget to free lab_queue if this allocation fails
         return 1;
     }
 
-    // Initialize group_to_queue_map to -1 (indicating no queue assigned)
+    // Initialize group_to_lab_map to -1 (indicating no queue assigned)
     for (int i = 0; i < M_no_of_groups; i++) {
-        group_to_queue_map[i] = -1;
+        group_to_lab_map[i] = -1;
+    }
+
+
+
+	// Allocate lab_to_group_map
+    lab_to_group_map = malloc(K_no_of_tutors * sizeof(int));
+    if (lab_to_group_map == NULL) {
+        perror("Failed to allocate memory for lab_to_group_map");
+        free(lab_queue); // Don't forget to free lab_queue if this allocation fails
+        return 1;
+    }
+
+    // Initialize lab_to_group_map to -1 (indicating no queue assigned)
+    for (int i = 0; i < K_no_of_tutors; i++) {
+        lab_to_group_map[i] = -1;
+    }
+
+
+
+	// Allocate lab_room_capacity
+    lab_room_capacity = malloc(K_no_of_tutors * sizeof(int));
+    if (lab_room_capacity == NULL) {
+        perror("Failed to allocate memory for lab_room_capacity");
+        free(lab_queue);//todo free others // Don't forget to free lab_queue if this allocation fails
+        return 1;
+    }
+
+    // Initialize lab_room_capacity to -1 (indicating no queue assigned)
+    for (int i = 0; i < K_no_of_tutors; i++) {
+        lab_room_capacity[i] = -1;
     }
 
 	// Initialize condition variable objects //todo add more
@@ -306,18 +349,33 @@ void *teacher_routine(void *arg)
  /// part 2
 
  //group id assignment to student - you have done in Exercise 3
-while (current_lab_room < M_no_of_groups){
-//wait for lab room to become available
-printf("Teacher: I’m waiting for lab room to become available\n");
-//signal tutor to take group gid for exercise
-//signal students in group gid to enter and start exercise
-printf("Teacher: The lab is now available. Students in group %d can enter
-the room and start your lab exercise.\n", gid);
-gid++;
+// 2 arrays- one to map whcih group (index) is in what lab room (value)
+// one to show how many studetns have gotten into the lab room
+
+// one queue to track which labs are available
+
+
+ int group_id = 0;
+ 	pthread_mutex_lock(&lab_room_map_mutex);
+while (group_id < M_no_of_groups){
+	//wait for a lab room to become available
+	print("Teacher: I’m waiting for a lab room to become available\n");
+	pthread_cond_wait(&lab_room_available, &lab_room_map_mutex);
+
+	pthread_cond_broadcast(&students_enter_lab);
+	printf("Teacher: The lab is now available. Students in group %d can enter the room and start your lab exercise.\n", group_id);
+	
+	group_id++;
+
 }
+
 //signal tutor to exit
-printf("Teacher: There are no students waiting. Tutor, you can go home
-now\n");
+printf("Teacher: There are no students waiting. Tutor, you can go home now\n");
+	pthread_cond_broadcast(&tutor_go_home);
+
+//wait for tutor to exit #todo loop count tutors leaving till all tutors are done
+
+
 printf("Teacher: I can now go home.\n");
 
 	return NULL;
@@ -371,18 +429,39 @@ void *student_routine(void *arg)
 
 void * tutor_routine(void *arg){
 	while(1){
+	int gid = lab_to_group_map[*(int *)arg];
 	//wait for teacher to assign a group of students
 	printf("Tutor: The lab room is vacated and ready for one group\n");
+	// add labid to queue to show its available
+	pthread_mutex_lock(&queue_mutex);
+	enqueue((int *)arg);
+	pthread_mutex_unlock(&queue_mutex);
+	pthread_cond_broadcast(&lab_room_available);
+
+
+
+	// //if signalled by teacher to exit
+	// if exit
+	// printf("Tutor: Thanks Teacher. Bye!\n");
+	// exit
+
+
+
+	//wait for students to enter lab
+	// while index of lab group value (size of students in lab ) is smaller than group size
+	// wait for students to enter lab
+
+	while(lab_room_capacity[*(int *)arg] < group_size(gid)){
+		pthread_cond_wait(&students_enter_lab, &lab_room_size_full);
+	}
+	printf("Tutor: All students in group %d have entered the room. You can start your exercise now.\n", gid);
+	//students in group gid conduct the lab exercise
+	//signal students the end of exercise
 
 	//get group id
-//if signalled by teacher to exit
-printf("Tutor: Thanks Teacher. Bye!\n");
-exit
-//wait for all students in group gid to enter room
-printf("Tutor: All students in group %d have entered the room. You can
-start your exercise now.\n", gid);
-//students in group gid conduct the lab exercise
-//signal students the end of exercise
+
+
+
 printf("Tutor: Students in group %d have completed the lab exercise in %d
 units of time. You may leave this room now.\n", gid, ex_time);
 //wait for lab to become empty
