@@ -28,6 +28,7 @@ int current_student_id = -1; // current student id
 
 void *teacher_routine(void *);
 void *student_routine(void *);
+void *tutor_routine(void *);
 
 // declare global mutex and condition variables
 pthread_mutex_t arriving_mutex = PTHREAD_MUTEX_INITIALIZER;	 // static initialization
