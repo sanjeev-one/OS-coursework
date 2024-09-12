@@ -435,7 +435,7 @@ void * tutor_routine(void *arg){
 	// add labid to queue to show its available
 	pthread_mutex_lock(&queue_mutex);
 	enqueue((int *)arg);
-	pthread_mutex_unlock(&queue_mutex);
+	pthread_mutex_unlock(&queue_mutex); //todo if tutor goes through lab before teacher assigns next lab - fix last student changes lab id to -1
 	pthread_cond_broadcast(&lab_room_available);
 
 
@@ -447,7 +447,7 @@ void * tutor_routine(void *arg){
 	// if lab index is -2 then exit
 	if (lab_to_group_map[*(int *)arg] == -2){
 		printf("Tutor: Thanks Teacher. Bye!\n");
-		exit; //todo or exit?
+		pthread_exit(EXIT_SUCCESS); //todo or exit?
 	}
 
 
@@ -493,3 +493,6 @@ void * tutor_routine(void *arg){
 
 	return NULL;
 }
+
+
+//todo last student changes lab id to -1 - 
