@@ -369,7 +369,8 @@ while (group_id < M_no_of_groups){
 	//wait for a lab room to become available
 	printf("Teacher: I’m waiting for a lab room to become available\n");
 	pthread_cond_broadcast(&teacher_waiting_for_available_lab);
-	pthread_cond_wait(&lab_room_available, &lab_room_map_mutex);
+	pthread_cond_wait(&lab_room_available, &lab_room_map_mutex); //todo fix this dumb stufff
+	
 
 
 	// get which lab is available
@@ -505,6 +506,7 @@ void * tutor_routine(void *arg){
 	pthread_mutex_unlock(&queue_mutex); //todo if tutor goes through lab before teacher assigns next lab - fix last student changes lab id to -1
 	pthread_mutex_lock(&lab_room_map_mutex);
 	while(lab_to_group_map[*(int *)arg] == -1){
+		printf("Tutor: I'm waiting for the teacher to assign a group of students to the lab room %d.\n", *(int *)arg);
 		pthread_cond_wait(&teacher_waiting_for_available_lab, &lab_room_map_mutex);
 	}
 	pthread_mutex_unlock(&lab_room_map_mutex);
