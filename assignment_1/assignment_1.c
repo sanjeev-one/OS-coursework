@@ -428,6 +428,13 @@ while (group_id < M_no_of_groups){
 	pthread_cond_broadcast(&students_can_enter_lab);
 	printf("Teacher: The lab %d is now available. Students in group %d can enter the room and start your lab exercise.\n", lab_id, group_id);
 	
+	pthread_mutex_lock(&lab_room_size_capacity);
+	while(lab_room_capacity[lab_id] < group_size(group_id)){
+		pthread_cond_wait(&all_students_entered, &lab_room_size_capacity);
+	}	
+	pthread_mutex_unlock(&lab_room_size_capacity);
+
+
 	group_id++;
 
 }
@@ -606,7 +613,7 @@ void * tutor_routine(void *arg){
 	pthread_mutex_lock(&lab_room_map_mutex);
 	gid = lab_to_group_map[*(int *)arg];
 	pthread_mutex_unlock(&lab_room_map_mutex);
-	
+
 	pthread_mutex_lock(&lab_room_size_capacity);
 	while(lab_room_capacity[*(int *)arg] < group_size(gid)){
 		pthread_cond_wait(&all_students_entered, &lab_room_size_capacity);
