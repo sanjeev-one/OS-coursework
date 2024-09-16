@@ -8,5 +8,6 @@ $(TARGET): $(SOURCE)
 
 .PHONY: run
 run: $(TARGET)
-	./$(TARGET) 1000 11 2 9
+	./$(TARGET) 
 
+# ... existing code ...

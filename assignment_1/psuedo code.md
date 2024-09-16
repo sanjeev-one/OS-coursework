@@ -2,7 +2,7 @@
 available lab queue
 lab id to group id
 group id to lab id
-tutor status = -1 - init, 0 in queue, 1 popped, 2 ready to get studetns, 3 exit
+tutor status = -1 - init waiting for teacher, 0 in queue, 1 popped, 2 ready to get studetns, 3 exit
 ## Teacher:
 part 1
 group id = 0

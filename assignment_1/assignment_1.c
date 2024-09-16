@@ -306,16 +306,16 @@ int main(int argc, char **argv)
 void *teacher_routine(void *arg)
 {
 
-	// find the group size
-	//   Each group will have N/M
-	// students if N is divisible by M. If N is not divisible by M, the first N%M groups will
-	// have ⌊N/M⌋+1 students each and the remaining groups will have ⌊N/M⌋ students each.//
-	int group_size = N_no_of_students / M_no_of_groups;
-	int remaining_students = N_no_of_students % M_no_of_groups;
-	if (remaining_students != 0)
-	{
-		group_size++;
-	} // todo fix
+	// // find the group size
+	// //   Each group will have N/M
+	// // students if N is divisible by M. If N is not divisible by M, the first N%M groups will
+	// // have ⌊N/M⌋+1 students each and the remaining groups will have ⌊N/M⌋ students each.//
+	// int group_size = N_no_of_students / M_no_of_groups;
+	// int remaining_students = N_no_of_students % M_no_of_groups;
+	// if (remaining_students != 0)
+	// {
+	// 	group_size++;
+	// } // todo fix
 
 	printf("Teacher: I'm waiting for all students to arrive.\n");
 	pthread_mutex_lock(&arriving_mutex);
@@ -425,8 +425,8 @@ while (group_id < M_no_of_groups){
 	}
 	pthread_mutex_unlock(&tutor_status_mutex);
 	//now tutor is ready to get students and teacher can notify students to enter 	
-	pthread_cond_broadcast(&students_can_enter_lab);
 	printf("Teacher: The lab %d is now available. Students in group %d can enter the room and start your lab exercise.\n", lab_id, group_id);
+	pthread_cond_broadcast(&students_can_enter_lab);
 	
 	pthread_mutex_lock(&lab_room_size_capacity);
 	while(lab_room_capacity[lab_id] < group_size(group_id)){
@@ -537,10 +537,16 @@ void *student_routine(void *arg)
 
 //signal tutor the room is vacated
 	if (lab_room_capacity[lab_id] == 0){
+		printf("Student %d in group %d: I am the last student to leave the lab room %d. I will signal the tutor to leave.\n", *myid, group_id, lab_id);
+		pthread_mutex_lock(&tutor_status_mutex);
+		
+		tutor_status[lab_id] = -1;
+		pthread_mutex_unlock(&tutor_status_mutex);
 		pthread_cond_broadcast(&all_students_left_lab);
 	}
+	pthread_mutex_unlock(&lab_room_size_capacity);
 
-
+	pthread_exit(EXIT_SUCCESS);  // Explicitly exit the thread
 
 	return NULL;
 }
@@ -581,7 +587,7 @@ void * tutor_routine(void *arg){
 	// }
 	// pthread_mutex_unlock(&lab_room_map_mutex);
 	
-	printf("Tutor: The lab room %d is vacated and ready for one group\n", *(int *)arg);
+	printf("Tutor %d: The lab room %d is vacated and ready for one group\n", *(int *)arg, *(int *)arg);
 	pthread_mutex_lock(&tutor_status_mutex);
 	tutor_status[*(int *) arg] = 2; //tutor is ready for students
 	pthread_mutex_unlock(&tutor_status_mutex);
@@ -598,10 +604,16 @@ void * tutor_routine(void *arg){
 	// printf("Tutor: Thanks Teacher. Bye!\n");
 	// exit
 	// if lab index is -2 then exit
-	if (lab_to_group_map[*(int *)arg] == -2){
-		printf("Tutor: Thanks Teacher. Bye!\n");
+	pthread_mutex_lock(&tutor_status_mutex);
+	if (tutor_status[*(int *) arg] == 3){
+		printf("Tutor %d: Thanks Teacher. Bye!\n", *(int *)arg);
+		pthread_mutex_unlock(&tutor_status_mutex);
+		pthread_cond_broadcast(&tutor_went_home);
+		//signal teacher tutor is leaving
+
 		pthread_exit(EXIT_SUCCESS); //todo or exit?
 	}
+	pthread_mutex_unlock(&tutor_status_mutex);
 
 
 
@@ -623,7 +635,7 @@ void * tutor_routine(void *arg){
 
 
 	
-	printf("Tutor: All students in group %d have entered the room. You can start your exercise now.\n", gid);
+	printf("Tutor %d: All students in group %d have entered the room. You can start your exercise now.\n", *(int *)arg, gid);
 	//students in group gid conduct the lab exercise
 	//signal students the end of exercise
 
@@ -636,14 +648,15 @@ void * tutor_routine(void *arg){
 	lab_room_capacity[*(int *)arg] = -group_size(gid); //students increment lab room capacity array
 	pthread_mutex_unlock(&lab_room_size_capacity);
 
-	pthread_cond_broadcast(&students_lab_over); //students go decrement lab room capacity array
 	printf("Tutor: Students in group %d have completed the lab exercise in %d units of time. You may leave this room now.\n", gid, ex_time);
+	pthread_cond_broadcast(&students_lab_over); //students go decrement lab room capacity array
 //wait for lab to become empty
-	pthread_mutex_lock(&lab_room_size_capacity);
-	while (lab_room_capacity[*(int *)arg] < 0){
-		pthread_cond_wait(&all_students_left_lab, &lab_room_size_capacity);
+	pthread_mutex_lock(&tutor_status_mutex);
+	while (tutor_status[*(int *) arg] != -1){
+		pthread_cond_wait(&all_students_left_lab, &tutor_status_mutex);
+		
 	}
-	pthread_mutex_unlock(&lab_room_size_capacity);
+	pthread_mutex_unlock(&tutor_status_mutex);
 
 
 
