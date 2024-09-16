@@ -554,7 +554,6 @@ void *student_routine(void *arg)
 void * tutor_routine(void *arg){
 	while(1){
 
-	
 	int gid;
 	pthread_mutex_lock(&tutor_status_mutex);
 	tutor_status[*(int *) arg] = 0;
