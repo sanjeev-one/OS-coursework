@@ -67,3 +67,7 @@ signal tutor that lab is vacated
 exit
 
 
+
+# fix
+
+when there are more tutors than groups, some just sit around and need to exit when its time. 
