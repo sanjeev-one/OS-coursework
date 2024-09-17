@@ -293,15 +293,16 @@ int main(int argc, char **argv)
 
 	// join threads
 	//  join student  and teacher threads. tutors are in a loop
-	for (k = 0; k < N_no_of_students +1; k++)
+	// join all threads
+	for (k = 0; k < N_no_of_students + K_no_of_tutors + 1; k++)
 	{
-		pthread_join(threads[k], NULL);
+		rc = pthread_join(threads[k], NULL);
+		if (rc)
+		{
+			printf("ERROR; return code from pthread_join() is %d\n", rc);
+			exit(-1);
+		}
 	}
-	// Join tutor threads
-    for (k = N_no_of_students + 1; k < N_no_of_students + K_no_of_tutors + 1; k++)
-    {
-        pthread_join(threads[k], NULL);
-    }
 
 	// deallocate allocated memory
 	
