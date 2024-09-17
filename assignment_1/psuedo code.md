@@ -3,13 +3,16 @@ available lab queue
 lab id to group id
 group id to lab id
 tutor status = -1 - init waiting for teacher, 0 in queue, 1 popped, 2 ready to get studetns, 3 exit
+
+teacher flag = 1 wating for tutor, 0 doing stuff, 2 group assigned, 3 go home
 ## Teacher:
 part 1
 group id = 0
 loop group id < groups ----one gfroup at a time == signal?
-    im waiting for a lab room to be available - while queu empty wait for tutor signal
+    im waiting for a lab room to be available - while queu empty; teacher flag =1 
+     wait for tutor signal
     popopopo
-    signal tutor that room popped, tutor statuss =1 (0 tutor in queue)
+    signal tutor that room popped, tutor statuss =1 (0 tutor in queue) teacher status = 0
 
     tutor say - ready to get group students = 2?
     
@@ -29,7 +32,9 @@ teacher goes home
 ## Tutor:
 status = -1
 add lab to queue
-wait for teacher to be waiting for lab - teacher: what lab ready (status = 0)
+wait for teacher to be waiting for lab - teacher: what lab ready 
+check teacher status if its 1
+(status = 0)
 [teacher pop po ppo] [status = 1]
 [tutor status 1 - popped]
 tutor see ok i popped - 1

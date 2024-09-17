@@ -25,6 +25,7 @@ int *group_lineup; // array to store the groupid of students
 int *tutor_status; // array to store the status of tutors
 
 int no_of_students_arrived = 0; // number of students arrived
+int tutor_count_left = 0;
 
 int current_student_id = -1; // current student id
 
@@ -45,8 +46,14 @@ pthread_cond_t  a_student_assigned, student_arrived, id_recieved; // static init
 pthread_mutex_t tutor_status_mutex = PTHREAD_MUTEX_INITIALIZER; // static initialization
 pthread_mutex_t lab_room_map_mutex = PTHREAD_MUTEX_INITIALIZER; // static initialization
 pthread_mutex_t lab_room_size_capacity = PTHREAD_MUTEX_INITIALIZER; // static initialization
+pthread_mutex_t teacher_status_mutex = PTHREAD_MUTEX_INITIALIZER; // static initialization
+pthread_mutex_t tutor_left_mutex = PTHREAD_MUTEX_INITIALIZER; // static initialization
 pthread_cond_t lab_room_available,group_assigned,tutor_ready_for_students,teacher_waiting_for_available_lab, students_can_enter_lab,all_students_entered,students_lab_over,all_students_left_lab, tutor_go_home, tutor_went_home; // static initialization
 int current_lab_room = 0; // counter for lab rooms
+
+int start_part2 = 0;
+pthread_mutex_t start_part2_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t start_part2_cv;
 
 
 int *group_to_lab_map; // New array to map group ID(index) to lab ID (value)
@@ -59,12 +66,14 @@ int queue_rear = -1;
 int queue_size = 0;
 
 int group_size(int group_id) {
-	int group_size = N_no_of_students / M_no_of_groups;
-	int remaining_students = N_no_of_students % M_no_of_groups;
-	if (remaining_students != 0) {
-		group_size++;
+	if(group_id < N_no_of_students % M_no_of_groups)
+	{
+		return N_no_of_students / M_no_of_groups + 1;
 	}
-	return group_size;
+	else
+	{
+		return N_no_of_students / M_no_of_groups;
+	}
 }
 
 
@@ -218,6 +227,7 @@ int main(int argc, char **argv)
     }
 
 	// Initialize condition variable objects //todo add more
+	initialize_cond_var(&start_part2_cv);
 	initialize_cond_var(&a_student_assigned);
 	initialize_cond_var(&student_arrived);
 	initialize_cond_var(&id_recieved);
@@ -381,35 +391,43 @@ void *teacher_routine(void *arg)
 
 // one queue to track which labs are available
 
+// Signal tutors to start part 2
+pthread_mutex_lock(&start_part2_mutex);
+start_part2 = 1;
+pthread_cond_broadcast(&start_part2_cv);
+pthread_mutex_unlock(&start_part2_mutex);
 
  int group_id = 0;
 while (group_id < M_no_of_groups){
 	//wait for a lab room to become available
 	printf("Teacher: I’m waiting for a lab room to become available\n");
-	//teacher_status = 1; //1 is waiting for lab room to become available
+	pthread_mutex_lock(&teacher_status_mutex);
+	teacher_status = 1; //1 is waiting for lab room to become available
 	pthread_cond_broadcast(&teacher_waiting_for_available_lab);
-	//teacher_status = 0; //0 is not looking for labs
+	pthread_mutex_unlock(&teacher_status_mutex);
 
 
 	//wait for a lab room to become available
 	pthread_mutex_lock(&queue_mutex);
-	
-
-	while(is_queue_empty()){
+	while(is_queue_empty() ){
 	pthread_cond_wait(&lab_room_available, &queue_mutex); //todo fix this dumb stufff
 	}
 	//pthread_mutex_unlock(&queue_mutex);
-
-
 	// get which lab is available
 	//pthread_mutex_lock(&queue_mutex);
 	int lab_id = dequeue();
 	pthread_mutex_unlock(&queue_mutex);
+
+
+	
+
+
+
 	// set that tutor to busy
-	pthread_mutex_lock(&tutor_status_mutex);
-	//mark that tutor got popped from queue
-	tutor_status[lab_id] = 1;
-	pthread_mutex_unlock(&tutor_status_mutex);
+	// pthread_mutex_lock(&tutor_status_mutex);
+	// //mark that tutor got popped from queue
+	// tutor_status[lab_id] = 1;
+	// pthread_mutex_unlock(&tutor_status_mutex);
 
 
 	// setup the array values
@@ -417,6 +435,13 @@ while (group_id < M_no_of_groups){
 	group_to_lab_map[group_id] = lab_id;
 	lab_to_group_map[lab_id] = group_id;
 	pthread_mutex_unlock(&lab_room_map_mutex);
+
+	//signal tutor to that group is assigned
+	
+	
+	pthread_cond_broadcast(&group_assigned);
+
+
 
 	//wait for tutor to be ready
 	pthread_mutex_lock(&tutor_status_mutex);
@@ -427,7 +452,10 @@ while (group_id < M_no_of_groups){
 	//now tutor is ready to get students and teacher can notify students to enter 	
 	printf("Teacher: The lab %d is now available. Students in group %d can enter the room and start your lab exercise.\n", lab_id, group_id);
 	pthread_cond_broadcast(&students_can_enter_lab);
+
 	
+
+
 	pthread_mutex_lock(&lab_room_size_capacity);
 	while(lab_room_capacity[lab_id] < group_size(group_id)){
 		pthread_cond_wait(&all_students_entered, &lab_room_size_capacity);
@@ -442,22 +470,18 @@ while (group_id < M_no_of_groups){
 
 //signal tutor to exit
 printf("Teacher: There are no students waiting. Tutor, you can go home now\n");
-pthread_mutex_lock(&tutor_status_mutex);
-for (int i = 0; i < K_no_of_tutors; i++){
-	tutor_status[i] = 3;
-}
-pthread_mutex_unlock(&tutor_status_mutex);
+pthread_mutex_lock(&teacher_status_mutex);
+teacher_status = 3;
+pthread_mutex_unlock(&teacher_status_mutex);
 
-pthread_cond_broadcast(&tutor_go_home);
+//pthread_cond_broadcast(&tutor_go_home);
 
 //wait for tutor to exit //todo loop count tutors leaving till all tutors are done
-int tutor_count_left = 0;
-pthread_mutex_lock(&lab_room_map_mutex);
+pthread_mutex_lock(&tutor_left_mutex);
 while(tutor_count_left < K_no_of_tutors){
-	pthread_cond_wait(&tutor_went_home, &lab_room_map_mutex);
-	tutor_count_left++;
+	pthread_cond_wait(&tutor_went_home, &tutor_left_mutex);
 }
-pthread_mutex_unlock(&lab_room_map_mutex);
+pthread_mutex_unlock(&tutor_left_mutex);
 
 
 printf("Teacher: I can now go home.\n");
@@ -514,6 +538,7 @@ void *student_routine(void *arg)
 
 	pthread_mutex_lock(&lab_room_size_capacity);
 	lab_room_capacity[lab_id]++;
+		printf("%d",group_size(group_id));
 	if (lab_room_capacity[lab_id] == group_size(group_id)){
 		pthread_cond_broadcast(&all_students_entered);
 	}
@@ -538,10 +563,10 @@ void *student_routine(void *arg)
 //signal tutor the room is vacated
 	if (lab_room_capacity[lab_id] == 0){
 		printf("Student %d in group %d: I am the last student to leave the lab room %d. I will signal the tutor to leave.\n", *myid, group_id, lab_id);
-		pthread_mutex_lock(&tutor_status_mutex);
+		pthread_mutex_lock(&lab_room_map_mutex);
 		
-		tutor_status[lab_id] = -1;
-		pthread_mutex_unlock(&tutor_status_mutex);
+		lab_to_group_map[lab_id] = -2;
+		pthread_mutex_unlock(&lab_room_map_mutex);
 		pthread_cond_broadcast(&all_students_left_lab);
 	}
 	pthread_mutex_unlock(&lab_room_size_capacity);
@@ -552,29 +577,53 @@ void *student_routine(void *arg)
 }
 
 void * tutor_routine(void *arg){
-	while(1){
+
+	 // Wait for the teacher to start part 2
+    pthread_mutex_lock(&start_part2_mutex);
+    while (!start_part2) {
+        pthread_cond_wait(&start_part2_cv, &start_part2_mutex);
+    }
+    pthread_mutex_unlock(&start_part2_mutex);
+	int myid = *(int *)arg;
 
 	int gid;
-	pthread_mutex_lock(&tutor_status_mutex);
-	tutor_status[*(int *) arg] = 0;
-	pthread_mutex_unlock(&tutor_status_mutex);
 
+	while(1){
+	printf("Tutor %d: top; tutor status: %d\n", myid,tutor_status[myid]);
+	
+	pthread_mutex_lock(&teacher_status_mutex);
+	if (teacher_status == 3){
+		printf("Tutor %d: Thanks Teacher. Bye!\n", *(int *)arg);
+		pthread_mutex_unlock(&teacher_status_mutex);
+		pthread_mutex_lock(&tutor_left_mutex);
+		tutor_count_left++;
+		pthread_mutex_unlock(&tutor_left_mutex);
+		pthread_cond_broadcast(&tutor_went_home);
+		//signal teacher tutor is leaving
+
+		pthread_exit(EXIT_SUCCESS); //todo or exit?
+	}
+	//pthread_mutex_unlock(&teacher_status_mutex);
+	
+	//pthread_mutex_lock(&teacher_status_mutex);
+	//wait for teacher to start part 2
+		// teahcer: whos ready - pops and sets status to 1
+	while(teacher_status != 1){
+		pthread_cond_wait(&teacher_waiting_for_available_lab, &teacher_status_mutex);
+		//tutor_status[*(int *) arg] = 1;
+	}
+	pthread_mutex_unlock(&teacher_status_mutex);
 
 	// add labid to queue to show its available
 	pthread_mutex_lock(&queue_mutex);
 	enqueue(*(int *)arg);
 	pthread_cond_broadcast(&lab_room_available);
 	pthread_mutex_unlock(&queue_mutex); //todo if tutor goes through lab before teacher assigns next lab - fix last student changes lab id to -1
+	//pthread_mutex_lock(&tutor_status_mutex);
+	//tutor_status[*(int *) arg] = 0;// tutor is in queue
+	//pthread_mutex_unlock(&tutor_status_mutex);
+
 	
-	
-	pthread_mutex_lock(&tutor_status_mutex);
-	//wait for teacher to start part 2
-		// teahcer: whos ready - pops and sets status to 1
-	while(tutor_status[*(int *) arg] != 1){
-		pthread_cond_wait(&teacher_waiting_for_available_lab, &tutor_status_mutex);
-		//tutor_status[*(int *) arg] = 1;
-	}
-	pthread_mutex_unlock(&tutor_status_mutex);
 
 
 
@@ -587,6 +636,14 @@ void * tutor_routine(void *arg){
 	// pthread_mutex_unlock(&lab_room_map_mutex);
 	
 	printf("Tutor %d: The lab room %d is vacated and ready for one group\n", *(int *)arg, *(int *)arg);
+	//wait for teacher to set group id to lab id
+	pthread_mutex_lock(&lab_room_map_mutex);
+	while (lab_to_group_map[myid] == -1){
+		pthread_cond_wait(&group_assigned, &lab_room_map_mutex);
+	}
+	pthread_mutex_unlock(&lab_room_map_mutex);
+
+
 	pthread_mutex_lock(&tutor_status_mutex);
 	tutor_status[*(int *) arg] = 2; //tutor is ready for students
 	pthread_mutex_unlock(&tutor_status_mutex);
@@ -603,16 +660,6 @@ void * tutor_routine(void *arg){
 	// printf("Tutor: Thanks Teacher. Bye!\n");
 	// exit
 	// if lab index is -2 then exit
-	pthread_mutex_lock(&tutor_status_mutex);
-	if (tutor_status[*(int *) arg] == 3){
-		printf("Tutor %d: Thanks Teacher. Bye!\n", *(int *)arg);
-		pthread_mutex_unlock(&tutor_status_mutex);
-		pthread_cond_broadcast(&tutor_went_home);
-		//signal teacher tutor is leaving
-
-		pthread_exit(EXIT_SUCCESS); //todo or exit?
-	}
-	pthread_mutex_unlock(&tutor_status_mutex);
 
 
 
@@ -631,7 +678,7 @@ void * tutor_routine(void *arg){
 	}	
 	pthread_mutex_unlock(&lab_room_size_capacity);
 
-
+	
 
 	
 	printf("Tutor %d: All students in group %d have entered the room. You can start your exercise now.\n", *(int *)arg, gid);
@@ -647,15 +694,18 @@ void * tutor_routine(void *arg){
 	lab_room_capacity[*(int *)arg] = -group_size(gid); //students increment lab room capacity array
 	pthread_mutex_unlock(&lab_room_size_capacity);
 
-	printf("Tutor: Students in group %d have completed the lab exercise in %d units of time. You may leave this room now.\n", gid, ex_time);
+	printf("Tutor %d: Students in group %d have completed the lab exercise in %d units of time. You may leave this room now.\n",myid, gid, ex_time);
 	pthread_cond_broadcast(&students_lab_over); //students go decrement lab room capacity array
 //wait for lab to become empty
-	pthread_mutex_lock(&tutor_status_mutex);
-	while (tutor_status[*(int *) arg] != -1){
-		pthread_cond_wait(&all_students_left_lab, &tutor_status_mutex);
+	pthread_mutex_lock(&lab_room_map_mutex);
+	while (lab_to_group_map[myid] != -2){
+		printf("Tutor %d: I'm waiting for the students to leave the lab room %d.\n", myid, myid);
+		pthread_cond_wait(&all_students_left_lab, &lab_room_map_mutex);
+		printf("I got told all students left\n");
+
 		
 	}
-	pthread_mutex_unlock(&tutor_status_mutex);
+	pthread_mutex_unlock(&lab_room_map_mutex);
 
 
 
@@ -675,3 +725,5 @@ void * tutor_routine(void *arg){
 
 //todo last student changes lab id to -1 - 
 //todo make sure excersise time does not lock mutex to let other threads do stuff
+
+//todo make fix tutor status
