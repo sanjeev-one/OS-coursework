@@ -513,12 +513,13 @@ pthread_mutex_lock(&teacher_status_mutex);
 teacher_status = 3;
 pthread_mutex_unlock(&teacher_status_mutex);
 
-//pthread_cond_broadcast(&tutor_go_home);
+
 
 //wait for tutor to exit //todo loop count tutors leaving till all tutors are done
 pthread_mutex_lock(&tutor_left_mutex);
 while(tutor_count_left < K_no_of_tutors){
 	pthread_cond_wait(&tutor_went_home, &tutor_left_mutex);
+
 }
 pthread_mutex_unlock(&tutor_left_mutex);
 
@@ -685,6 +686,10 @@ void * tutor_routine(void *arg){
 	pthread_mutex_lock(&lab_room_map_mutex);
 	while (lab_to_group_map[myid] == -1){
 		pthread_cond_wait(&group_assigned, &lab_room_map_mutex);
+
+
+
+
 	}
 	pthread_mutex_unlock(&lab_room_map_mutex);
 
