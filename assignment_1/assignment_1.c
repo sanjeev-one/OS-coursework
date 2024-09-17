@@ -345,7 +345,7 @@ int main(int argc, char **argv)
     pthread_cond_destroy(&tutor_went_home);
     pthread_cond_destroy(&start_part2_cv);
 
-    pthread_exit(EXIT_SUCCESS);
+    //pthread_exit(EXIT_SUCCESS);
     return 0;
 }
 
@@ -612,7 +612,7 @@ void *student_routine(void *arg)
 	}
 	pthread_mutex_unlock(&lab_room_size_capacity);
 
-	pthread_exit(EXIT_SUCCESS);  // Explicitly exit the thread
+	//pthread_exit(EXIT_SUCCESS);  // Explicitly exit the thread
 
 	return NULL;
 }
@@ -647,7 +647,7 @@ void * tutor_routine(void *arg){
 		pthread_cond_broadcast(&tutor_went_home);
 		//signal teacher tutor is leaving
 
-		pthread_exit(EXIT_SUCCESS); //todo or exit?
+		//pthread_exit(EXIT_SUCCESS); //todo or exit?
 	}
 	pthread_mutex_unlock(&teacher_status_mutex);
 	
