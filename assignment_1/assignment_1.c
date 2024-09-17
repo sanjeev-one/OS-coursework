@@ -297,20 +297,56 @@ int main(int argc, char **argv)
 	{
 		pthread_join(threads[k], NULL);
 	}
-	//  terminate the teacher thread using pthread_cancel().
-	//pthread_cancel(threads[0]);
+	// Join tutor threads
+    for (k = N_no_of_students + 1; k < N_no_of_students + K_no_of_tutors + 1; k++)
+    {
+        pthread_join(threads[k], NULL);
+    }
 
 	// deallocate allocated memory
-	free(threads);
-	free(t_ids);
+	
 
 	// destroy mutex and condition variable objects
 	// pthread_mutex_destroy(&melon_box_mutex);
 	// pthread_cond_destroy(&consumer_cond);
+// Deallocate allocated memory
+    free(threads);
+    free(t_ids);
+    free(group_lineup);
+    free(tutor_status);
+    free(lab_queue);
+    free(group_to_lab_map);
+    free(lab_to_group_map);
+    free(lab_room_capacity);
 
-	pthread_exit(EXIT_SUCCESS);
+    // Destroy mutexes and condition variables
+    pthread_mutex_destroy(&arriving_mutex);
+    pthread_mutex_destroy(&assigning_mutex);
+    pthread_mutex_destroy(&tutor_status_mutex);
+    pthread_mutex_destroy(&lab_room_map_mutex);
+    pthread_mutex_destroy(&lab_room_size_capacity);
+    pthread_mutex_destroy(&teacher_status_mutex);
+    pthread_mutex_destroy(&tutor_left_mutex);
+    pthread_mutex_destroy(&start_part2_mutex);
+    pthread_mutex_destroy(&queue_mutex);
 
-	 exit(0);
+    pthread_cond_destroy(&a_student_assigned);
+    pthread_cond_destroy(&student_arrived);
+    pthread_cond_destroy(&id_recieved);
+    pthread_cond_destroy(&lab_room_available);
+    pthread_cond_destroy(&group_assigned);
+    pthread_cond_destroy(&tutor_ready_for_students);
+    pthread_cond_destroy(&teacher_waiting_for_available_lab);
+    pthread_cond_destroy(&students_can_enter_lab);
+    pthread_cond_destroy(&all_students_entered);
+    pthread_cond_destroy(&students_lab_over);
+    pthread_cond_destroy(&all_students_left_lab);
+    pthread_cond_destroy(&tutor_go_home);
+    pthread_cond_destroy(&tutor_went_home);
+    pthread_cond_destroy(&start_part2_cv);
+
+    pthread_exit(EXIT_SUCCESS);
+    return 0;
 }
 
 void *teacher_routine(void *arg)
@@ -612,9 +648,9 @@ void * tutor_routine(void *arg){
 
 		pthread_exit(EXIT_SUCCESS); //todo or exit?
 	}
-	//pthread_mutex_unlock(&teacher_status_mutex);
+	pthread_mutex_unlock(&teacher_status_mutex);
 	
-	//pthread_mutex_lock(&teacher_status_mutex);
+	pthread_mutex_lock(&teacher_status_mutex);
 	//wait for teacher to start part 2
 		// teahcer: whos ready - pops and sets status to 1
 	while(teacher_status != 1){
