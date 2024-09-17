@@ -1,3 +1,5 @@
+teacher doesnt reasssign gid if its -2 after all the studetns leave, eg the studetns all leave, labtogroupmap,=-2. then tutor is waitng for studetns to show up ina group id of -2. need tutor to wait for new teacher reassignemtn. 
+
 ## Variables
 available lab queue
 lab id to group id

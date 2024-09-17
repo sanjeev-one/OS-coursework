@@ -448,6 +448,9 @@ while (group_id < M_no_of_groups){
 	while(tutor_status[lab_id] != 2){
 		pthread_cond_wait(&tutor_ready_for_students, &tutor_status_mutex);
 	}
+
+
+
 	pthread_mutex_unlock(&tutor_status_mutex);
 	//now tutor is ready to get students and teacher can notify students to enter 	
 	printf("Teacher: The lab %d is now available. Students in group %d can enter the room and start your lab exercise.\n", lab_id, group_id);
@@ -540,6 +543,7 @@ void *student_routine(void *arg)
 	lab_room_capacity[lab_id]++;
 		printf("%d",group_size(group_id));
 	if (lab_room_capacity[lab_id] == group_size(group_id)){
+		printf("Student %d in group %d: I am the last student to enter the lab room %d. I will signal the tutor to start the lab exercise.\n", *myid, group_id, lab_id);
 		pthread_cond_broadcast(&all_students_entered);
 	}
 	pthread_mutex_unlock(&lab_room_size_capacity);
@@ -589,6 +593,11 @@ void * tutor_routine(void *arg){
 	int gid;
 
 	while(1){
+
+	pthread_mutex_lock(&tutor_status_mutex);
+	tutor_status[*(int *) arg] = 0; //tutor is ready for students
+	pthread_mutex_unlock(&tutor_status_mutex);
+
 	printf("Tutor %d: top; tutor status: %d\n", myid,tutor_status[myid]);
 	
 	pthread_mutex_lock(&teacher_status_mutex);
@@ -669,17 +678,16 @@ void * tutor_routine(void *arg){
 	//get group id
 
 	pthread_mutex_lock(&lab_room_map_mutex);
-	gid = lab_to_group_map[*(int *)arg];
+	gid = lab_to_group_map[myid];
 	pthread_mutex_unlock(&lab_room_map_mutex);
-
+//	todo this group gid, is wrong 
 	pthread_mutex_lock(&lab_room_size_capacity);
-	while(lab_room_capacity[*(int *)arg] < group_size(gid)){
+	while(lab_room_capacity[myid] < group_size(gid)){
+		printf("Tutor %d: I'm waiting for all students in group %d to enter the lab room %d with group size %d.\n", myid, gid, myid, group_size(gid));
 		pthread_cond_wait(&all_students_entered, &lab_room_size_capacity);
 	}	
 	pthread_mutex_unlock(&lab_room_size_capacity);
-
 	
-
 	
 	printf("Tutor %d: All students in group %d have entered the room. You can start your exercise now.\n", *(int *)arg, gid);
 	//students in group gid conduct the lab exercise
@@ -702,9 +710,10 @@ void * tutor_routine(void *arg){
 		printf("Tutor %d: I'm waiting for the students to leave the lab room %d.\n", myid, myid);
 		pthread_cond_wait(&all_students_left_lab, &lab_room_map_mutex);
 		printf("I got told all students left\n");
-
 		
 	}
+			lab_to_group_map[myid] = -1;
+
 	pthread_mutex_unlock(&lab_room_map_mutex);
 
 
