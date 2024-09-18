@@ -356,16 +356,6 @@ int main(int argc, char **argv)
 void *teacher_routine(void *arg)
 {
 
-	// // find the group size
-	// //   Each group will have N/M
-	// // students if N is divisible by M. If N is not divisible by M, the first N%M groups will
-	// // have ⌊N/M⌋+1 students each and the remaining groups will have ⌊N/M⌋ students each.//
-	// int group_size = N_no_of_students / M_no_of_groups;
-	// int remaining_students = N_no_of_students % M_no_of_groups;
-	// if (remaining_students != 0)
-	// {
-	// 	group_size++;
-	// } // todo fix
 
 	printf("Teacher: I'm waiting for all students to arrive.\n");
 	pthread_mutex_lock(&arriving_mutex);
@@ -400,8 +390,6 @@ void *teacher_routine(void *arg)
 	//  when students check what group they are in then it will be random
 	//  group lineup index is the student id and the value is what group the student is in
 	shuffle(group_lineup, N_no_of_students);
-	printf("Teacher: I am shuffling.\n");
-	//pthread_mutex_unlock(&assigning_mutex);
 
 //teacher sends out assingments
 
@@ -587,7 +575,6 @@ void *student_routine(void *arg)
 
 	pthread_mutex_lock(&lab_room_size_capacity);
 	lab_room_capacity[lab_id]++;
-		printf("%d",group_size(group_id));
 	if (lab_room_capacity[lab_id] == group_size(group_id)){
 		printf("Student %d in group %d: I am the last student to enter the lab room %d. I will signal the tutor to start the lab exercise.\n", *myid, group_id, lab_id);
 		pthread_cond_broadcast(&all_students_entered);
