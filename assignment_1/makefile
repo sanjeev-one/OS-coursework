@@ -4,7 +4,7 @@ TARGET = 1
 SOURCE = assignment_1.c
 
 $(TARGET): $(SOURCE)
-	$(CC) $(CFLAGS) -o $(TARGET) $(SOURCE)
+	$(CC)  -o $(TARGET) $(SOURCE) $(CFLAGS)
 
 .PHONY: run
 run: $(TARGET)

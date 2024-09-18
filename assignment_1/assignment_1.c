@@ -117,7 +117,6 @@ void shuffle(int *array, int n)
 		array[j] = temp;
 	}
 }
-
 int main(int argc, char **argv)
 {
 	pthread_t *threads; // system thread id
@@ -139,6 +138,10 @@ int main(int argc, char **argv)
 	printf("Enter K: the number of tutors: ");
 	scanf("%d", &K_no_of_tutors);
 	printf("\n\n");
+
+	if(K_no_of_tutors > M_no_of_groups){
+		K_no_of_tutors =  M_no_of_groups;
+	}
 
 	// ask for the time limit
 	printf("Enter T: the time limit for each group of students to do the lab: ");
@@ -528,7 +531,6 @@ while(tutor_count_left < K_no_of_tutors){
 	printf("Teacher: final tutor count is %d.\n", tutor_count_left);
 
 
-pthread_mutex_unlock(&tutor_left_mutex);
 
 
 printf("Teacher: I can now go home.\n");
@@ -694,7 +696,6 @@ void * tutor_routine(void *arg){
 
 
 
-		pthread_cond_wait(&group_assigned, &lab_room_map_mutex);
 		pthread_mutex_lock(&teacher_status_mutex);
 	if (teacher_status == 3){ //never runs
 		pthread_mutex_unlock(&teacher_status_mutex);
@@ -708,6 +709,7 @@ void * tutor_routine(void *arg){
 		pthread_exit(EXIT_SUCCESS); //todo or exit?
 	}
 	pthread_mutex_unlock(&teacher_status_mutex);
+		pthread_cond_wait(&group_assigned, &lab_room_map_mutex);
 
 
 
