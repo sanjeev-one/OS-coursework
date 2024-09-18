@@ -600,11 +600,11 @@ void *student_routine(void *arg)
 //signal tutor the room is vacated
 	if (lab_room_capacity[lab_id] == 0){
 		printf("Student %d in group %d: I am the last student to leave the lab room %d. I will signal the tutor to leave.\n", *myid, group_id, lab_id);
-		pthread_mutex_lock(&lab_room_map_mutex);
 		
+		pthread_mutex_lock(&lab_room_map_mutex);
 		lab_to_group_map[lab_id] = -2;
-		pthread_cond_broadcast(&all_students_left_lab);
 		pthread_mutex_unlock(&lab_room_map_mutex);
+		pthread_cond_broadcast(&all_students_left_lab);
 	}
 	pthread_mutex_unlock(&lab_room_size_capacity);
 
@@ -630,19 +630,13 @@ void * tutor_routine(void *arg){
 	pthread_mutex_lock(&tutor_status_mutex);
 	tutor_status[*(int *) arg] = 0; //tutor is ready for students
 	pthread_mutex_unlock(&tutor_status_mutex);
-
-	printf("Tutor %d: top; tutor status: %d\n", myid,tutor_status[myid]);
 	
 	pthread_mutex_lock(&teacher_status_mutex);
 	
-	//pthread_mutex_unlock(&teacher_status_mutex);
 	
-	//pthread_mutex_lock(&teacher_status_mutex);
-	//wait for teacher to start part 2
-		// teahcer: whos ready - pops and sets status to 1
+		// wait till the teacher is ready and make sure that the teacher is not trying to exit.
 	while(teacher_status != 1 && teacher_status != 3){
 		pthread_cond_wait(&teacher_waiting_for_available_lab, &teacher_status_mutex);
-		//tutor_status[*(int *) arg] = 1;
 	}
 	 if (teacher_status == 3) {
             printf("Tutor %d: Thanks Teacher. Bye!\n", myid);
