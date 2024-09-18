@@ -672,10 +672,22 @@ void * tutor_routine(void *arg){
 	//pthread_mutex_lock(&teacher_status_mutex);
 	//wait for teacher to start part 2
 		// teahcer: whos ready - pops and sets status to 1
-	while(teacher_status != 1){
+	while(teacher_status != 1 && teacher_status != 3){
 		pthread_cond_wait(&teacher_waiting_for_available_lab, &teacher_status_mutex);
 		//tutor_status[*(int *) arg] = 1;
 	}
+	 if (teacher_status == 3) {
+            printf("Tutor %d: Thanks Teacher. Bye!\n", myid);
+            pthread_mutex_unlock(&teacher_status_mutex);
+
+            pthread_mutex_lock(&tutor_left_mutex);
+            tutor_count_left++;
+            pthread_cond_broadcast(&tutor_went_home);
+            pthread_mutex_unlock(&tutor_left_mutex);
+
+            pthread_exit(EXIT_SUCCESS);
+	 }
+
 	pthread_mutex_unlock(&teacher_status_mutex);
 
 	// add labid to queue to show its available
