@@ -462,12 +462,12 @@ while (group_id_teacher < M_no_of_groups){
 	pthread_mutex_lock(&lab_room_map_mutex);
 	group_to_lab_map[group_id_teacher] = lab_id;
 	lab_to_group_map[lab_id] = group_id_teacher;
+	pthread_cond_broadcast(&group_assigned);
 	pthread_mutex_unlock(&lab_room_map_mutex);
 
 	//signal tutor to that group is assigned
 	
 	
-	pthread_cond_broadcast(&group_assigned);
 
 
 
@@ -476,9 +476,6 @@ while (group_id_teacher < M_no_of_groups){
 	while(tutor_status[lab_id] != 2){
 		pthread_cond_wait(&tutor_ready_for_students, &tutor_status_mutex);
 	}
-
-
-
 	pthread_mutex_unlock(&tutor_status_mutex);
 	//now tutor is ready to get students and teacher can notify students to enter 	
 	printf("Teacher: The lab %d is now available. Students in group %d can enter the room and start your lab exercise.\n", lab_id, group_id_teacher);
@@ -504,11 +501,13 @@ pthread_mutex_lock(&teacher_status_mutex);
 teacher_status = 3;
 pthread_mutex_unlock(&teacher_status_mutex);
 
+pthread_mutex_lock(&lab_room_map_mutex);
 
+pthread_cond_broadcast(&group_assigned);
+pthread_mutex_unlock(&lab_room_map_mutex);
 
 //wait for tutor to exit 
 pthread_mutex_lock(&tutor_left_mutex);
-pthread_cond_broadcast(&group_assigned);
 
 
 while(tutor_count_left < K_no_of_tutors){
@@ -632,8 +631,6 @@ void * tutor_routine(void *arg){
 	pthread_mutex_unlock(&tutor_status_mutex);
 	
 	pthread_mutex_lock(&teacher_status_mutex);
-	
-	
 		// wait till the teacher is ready and make sure that the teacher is not trying to exit.
 	while(teacher_status != 1 && teacher_status != 3){
 		pthread_cond_wait(&teacher_waiting_for_available_lab, &teacher_status_mutex);
@@ -648,8 +645,8 @@ void * tutor_routine(void *arg){
             pthread_mutex_unlock(&tutor_left_mutex);
 
             pthread_exit(EXIT_SUCCESS);
-	 }
-
+	}
+	 
 	pthread_mutex_unlock(&teacher_status_mutex);
 
 	// add labid to queue to show its available
@@ -706,9 +703,6 @@ void * tutor_routine(void *arg){
 
 
 	//wait for teacher to assign a group of students
-
-	//todo if tutor goes through lab before teacher assigns next lab - fix last student changes lab id to -1
-	//todo wait for teacher to asign students to lab to know which group id is corresponding to this lab id - 	int gid = lab_to_group_map[*(int *)arg];
 
 	// //if signalled by teacher to exit
 	// if exit
