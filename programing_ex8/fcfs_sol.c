@@ -16,6 +16,8 @@ int main (int argc, char *argv[])
 
     FILE * input_list_stream = NULL;
     PcbPtr job_dispatch_queue = NULL;
+    PcbPtr round_robin_queue = NULL;
+
     PcbPtr current_process = NULL;
     PcbPtr process = NULL;
     int timer = 0;
