@@ -26,6 +26,17 @@ int main (int argc, char *argv[])
     double av_turnaround_time = 0.0, av_wait_time = 0.0, av_response_time = 0.0;
     int n = 0;
 
+    //ask for time_quantum
+    int time_quantum;
+    int quantum;
+
+    
+    printf("Enter an integer value for time_quantum: ");
+    if (scanf("%d", &time_quantum) != 1) {
+        fprintf(stderr, "Error: Invalid input for time_quantum\n");
+        exit(EXIT_FAILURE);
+    }
+
 //  1. Populate the job_dispatch queue
 
     if (argc <= 0)
@@ -58,20 +69,31 @@ int main (int argc, char *argv[])
         job_dispatch_queue = enqPcb(job_dispatch_queue, process);
         n++;
     }
+    fprintf(stderr, "INFO: Read %d processes from \"%s\"\n", n, argv[1]);
 
 
-//  2. Whenever there is a running process or the job_dispatch queue is not empty:
+//  2. Whenever there is a running process or the job_dispatch queue or round robin queue is not empty:
 
-    while (current_process || job_dispatch_queue)
+    while (current_process || job_dispatch_queue || round_robin_queue)
     {
+
+        //Unload any arrived pending processes from the Job Dispatch queue  dequeue  process  from  Job  Dispatch  queue  and  enqueue  on  Round  Robin queue;
+        while (job_dispatch_queue && job_dispatch_queue->arrival_time <= timer)
+        {
+            process = deqPcb(&job_dispatch_queue);
+            round_robin_queue = enqPcb(round_robin_queue, process);
+        }
+
+
+
 //      i. If there is a currently running process;
         if (current_process)
         {
-//          a. Decrement the process's remaining_cpu_time variable;
-            current_process->remaining_cpu_time--;
+//          a. Decrement the process's remaining_cpu_time variable by quantum;
+            current_process->remaining_cpu_time -= quantum;
             
 //          b. If the process's allocated time has expired:
-            if (current_process->remaining_cpu_time <= 0)
+            if (current_process->remaining_cpu_time == 0)
             {
 //              A. Terminate the process;
                 terminatePcb(current_process);
@@ -85,26 +107,66 @@ int main (int argc, char *argv[])
                 free(current_process);
                 current_process = NULL;
             }
+            // if there are other processes in the round robin queue.
+            else if (round_robin_queue)
+            {
+                // suspend the current process and send to back of the queue
+                round_robin_queue = enqPcb(round_robin_queue, suspendPcb(current_process));
+                current_process = NULL;
+                }
+
+
+
         }
 
 //      ii. If there is no running process and there is a process ready to run:
-        if (!current_process && job_dispatch_queue && job_dispatch_queue->arrival_time <= timer)
+        if (!current_process && round_robin_queue)
         {
 //          Dequeue the process at the head of the queue, set it as currently running and start it
-            current_process = deqPcb(&job_dispatch_queue);
-            startPcb(current_process);
+            current_process = deqPcb(&round_robin_queue);
+           
+            //if the process is suspended, resume it
+            if (current_process->status == PCB_SUSPENDED)
+            {
+                //printf("Process %d is running with %d units of time left\n", current_process->pid, current_process->remaining_cpu_time);
+
+                current_process = resumePcb(current_process);
+        
+            }
+            else{
+            current_process = startPcb(current_process);
+            }
+
             response_time = timer - current_process->arrival_time;
             av_response_time += response_time;
         }
+        //calculate quantum from time_quantum
+        if(current_process){
+            if (current_process->remaining_cpu_time  - time_quantum >= 0){
+                quantum = time_quantum ;
+            }
+            else 
+            {
+               quantum = current_process->remaining_cpu_time;
+            }
+            
         
-//      iii. Let the dispatcher sleep for one second;
-        sleep(1);
+        }
+        else{
+            quantum = 1;
+        }
+        sleep(quantum);
+
+//      iii. Let the dispatcher sleep for quantum;
+        
         
 //      iv. Increment the dispatcher's timer;
-        timer++;
+        timer += quantum;
         
 //      v. Go back to 2.
     }
+
+    // start process,  at bottom then compute quantum - its how much time is left for each process. if service time is less that time quantum then  set to service time. if service time is greater than time quantum then set to time quantum. if there is no current process then set quantum to 1. so it will catch later processes coming in. 
 
 //  print out average turnaround time and average wait time
     av_turnaround_time = av_turnaround_time / n;
@@ -116,4 +178,12 @@ int main (int argc, char *argv[])
     
 //  3. Terminate the FCFS dispatcher
     exit(EXIT_SUCCESS);
+
+
+
+
+
+    // problem, when there is time waiting before the first process, then the quantum is set to be the time waiting and the time_quatum.
+
 }
+

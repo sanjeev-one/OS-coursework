@@ -44,6 +44,8 @@ typedef Pcb * PcbPtr;
 /* Function Prototypes */
 PcbPtr startPcb(PcbPtr);
 PcbPtr terminatePcb(PcbPtr);
+PcbPtr suspendPcb(PcbPtr);
+PcbPtr resumePcb(PcbPtr);
 PcbPtr printPcb(PcbPtr);
 void   printPcbHdr(void);
 PcbPtr createnullPcb();

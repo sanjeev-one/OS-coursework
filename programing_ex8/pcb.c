@@ -191,6 +191,7 @@ PcbPtr suspendPcb(PcbPtr p)
     else
     {
         kill(p->pid, SIGTSTP);
+        waitpid(p->pid, NULL, WUNTRACED);
         p->status = PCB_SUSPENDED;
         return p;
     }
