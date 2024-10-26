@@ -10,14 +10,41 @@
 /* Include files */
 #include "fcfs.h"
 
+
+
+PcbPtr job_dispatch_queue = NULL;
+PcbPtr round_robin_queue = NULL;
+
+PcbPtr level0_queue = NULL;
+PcbPtr level1_queue = NULL;
+PcbPtr level2_queue = NULL;
+
+
+
+PcbPtr findspot(PcbPtr process)
+{
+    /* takes in a process from job dispatch and returns the queue it should join */
+    switch (process->priority)
+    {
+    case 0:
+        return &level0_queue;
+    case 1:
+        return &level1_queue;
+    case 2:
+        return &level2_queue;
+    default:
+        fprintf(stderr, "ERROR: Invalid priority level %d\n", process->priority);
+        return NULL;
+    }
+}
+
+
 int main (int argc, char *argv[])
 {
     /*** Main function variable declarations ***/
 
     FILE * input_list_stream = NULL;
-    PcbPtr job_dispatch_queue = NULL;
-    PcbPtr round_robin_queue = NULL;
-
+    
     PcbPtr current_process = NULL;
     PcbPtr process = NULL;
     int timer = 0;
@@ -27,15 +54,29 @@ int main (int argc, char *argv[])
     int n = 0;
 
     //ask for time_quantum
-    int time_quantum;
+    int t0;
+    int t1;
+    int t2;
+
     int quantum;
 
     
-    printf("Enter an integer value for time_quantum: ");
-    if (scanf("%d", &time_quantum) != 1) {
-        fprintf(stderr, "Error: Invalid input for time_quantum\n");
+    printf("Enter an integer value for t0: ");
+    if (scanf("%d", &t0) != 1) {
+        fprintf(stderr, "Error: Invalid input for t0\n");
         exit(EXIT_FAILURE);
     }
+    printf("Enter an integer value for t1: ");
+    if (scanf("%d", &t1) != 1) {
+        fprintf(stderr, "Error: Invalid input for t0\n");
+        exit(EXIT_FAILURE);
+    }
+    printf("Enter an integer value for t1: ");
+    if (scanf("%d", &t1) != 1) {
+        fprintf(stderr, "Error: Invalid input for t1\n");
+        exit(EXIT_FAILURE);
+    }
+
 
 //  1. Populate the job_dispatch queue
 
@@ -44,7 +85,7 @@ int main (int argc, char *argv[])
         fprintf(stderr, "FATAL: Bad arguments array\n");
         exit(EXIT_FAILURE);
     }
-    else if (argc != 2)
+    else if (argc != 3)
     {
         fprintf(stderr, "Usage: %s <TESTFILE>\n", argv[0]);
         exit(EXIT_FAILURE);
@@ -58,9 +99,10 @@ int main (int argc, char *argv[])
 
     while (!feof(input_list_stream)) {  // put processes into job_dispatch queue
         process = createnullPcb();
-        if (fscanf(input_list_stream,"%d, %d",
+        if (fscanf(input_list_stream,"%d, %d, %d",
              &(process->arrival_time), 
-             &(process->service_time)) != 2) {
+             &(process->service_time),
+             &(process->priority)) != 3) {
             free(process);
             continue;
         }
@@ -69,19 +111,20 @@ int main (int argc, char *argv[])
         job_dispatch_queue = enqPcb(job_dispatch_queue, process);
         n++;
     }
+    
     fprintf(stderr, "INFO: Read %d processes from \"%s\"\n", n, argv[1]);
 
 
 //  2. Whenever there is a running process or the job_dispatch queue or round robin queue is not empty:
 
-    while (current_process || job_dispatch_queue || round_robin_queue)
+    while (current_process || job_dispatch_queue || level0_queue || level1_queue || level2_queue)
     {
 
         //Unload any arrived pending processes from the Job Dispatch queue  dequeue  process  from  Job  Dispatch  queue  and  enqueue  on  Round  Robin queue;
         while (job_dispatch_queue && job_dispatch_queue->arrival_time <= timer)
         {
             process = deqPcb(&job_dispatch_queue);
-            round_robin_queue = enqPcb(round_robin_queue, process);
+            *findspot(process) = enqPcb(*findspot(process), process);
         }
 
 
@@ -136,11 +179,10 @@ int main (int argc, char *argv[])
             }
             else{
             current_process = startPcb(current_process);
-            response_time = timer - current_process->arrival_time;
-            av_response_time += response_time;
             }
 
-            
+            response_time = timer - current_process->arrival_time;
+            av_response_time += response_time;
         }
         //calculate quantum from time_quantum
         if(current_process){
@@ -183,7 +225,7 @@ int main (int argc, char *argv[])
 
 
 
-
+//todo fix response time
 
     // problem, when there is time waiting before the first process, then the quantum is set to be the time waiting and the time_quatum.
 

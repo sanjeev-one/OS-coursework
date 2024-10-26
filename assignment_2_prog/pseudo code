@@ -1,0 +1,17 @@
+
+
+
+methods:
+next_job: finds the highest priority job 
+search through queues and return top job
+
+
+downgrade (job) checks position and moves down 
+
+
+place job (job)
+finds where to put job and places it
+
+
+
+
