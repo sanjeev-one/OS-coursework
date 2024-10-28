@@ -36,10 +36,8 @@ int main (int argc, char *argv[])
     int n = 0;
 
     //ask for time_quantum
-    int t0;
-    int t1;
-    int t2;
-    int time_quantum[3] = {t0, t1, t2};
+    int t0, t1, t2;
+    int time_quantum[3];
     //int quantum;
 
     
@@ -59,6 +57,9 @@ int main (int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
+    time_quantum[0] = t0;
+    time_quantum[1] = t1;
+    time_quantum[2] = t2;
 
 //  1. Populate the job_dispatch queue
     if (argc <= 0)
@@ -106,6 +107,7 @@ int main (int argc, char *argv[])
         while (job_dispatch_queue && job_dispatch_queue->arrival_time <= timer)
         {
             process = deqPcb(&job_dispatch_queue);
+            printf("Process arrrived: %d, service time %d \n", process->arrival_time, process->service_time);
             queues[process->priority] = enqPcb(queues[process->priority], process);
         }
 
@@ -147,6 +149,8 @@ accumulated run time at this level is equal to t1), the job will be moved to the
                 }
                 current_process->status = PCB_SUSPENDED;
                 current_process = deqPcb(&level0_queue);
+                printf("current proces priority should be 2: %d\n", current_process->priority);
+                printf("SWAPPED TO HIGHER PRIORIY\n");
             }
            }
             if (current_process->priority == 2){
@@ -167,18 +171,22 @@ accumulated run time at this level is equal to t1), the job will be moved to the
                 
                     current_process->status = PCB_SUSPENDED;
                     current_process = next(queues);
+                    printf("current proces priority should be 2: %d\n", current_process->priority);
+
+                    printf("SWAPPED TO HIGHER PRIORIY\n");
+
                 }
             }
 
 
 //          a. Decrement the process's remaining_cpu_time variable by quantum;
-            current_process->remaining_cpu_time -= current_process->quantum; //each process has a different quantum
+            current_process->remaining_cpu_time --; // timer changes by 1 each step
             printf("just decremented time \n Process %d is running with %d units of time left\n", current_process->pid, current_process->remaining_cpu_time);
 
 
 
 //          b. If the process's allocated time has expired:
-            if (current_process->remaining_cpu_time == 0)
+            if (current_process->remaining_cpu_time <= 0) //todo try ==
             {
 //              A. Terminate the process;
                 terminatePcb(current_process);
@@ -192,7 +200,7 @@ accumulated run time at this level is equal to t1), the job will be moved to the
                 current_process = NULL;
             }
             // if there are other processes in the other queues queue and process is not done.
-            else if (level0_queue || level1_queue || level2_queue)
+            else if ((current_process->service_time-current_process->remaining_cpu_time == time_quantum[current_process->priority]) && (current_process->remaining_cpu_time > 0) )//&& (level0_queue || level1_queue || level2_queue))
             {
                 // suspend the current process and send to back of the queue of the correct queue
                 // downgrade
@@ -210,14 +218,18 @@ accumulated run time at this level is equal to t1), the job will be moved to the
                 {
                     queues[2] = enqPcb(queues[2], suspendPcb(current_process));
                 }
-                printf("checking if status is suspended: %d\n", current_process->status);
+                printf("checking if status is suspended (4): %d\n", current_process->status);
 
             
                 current_process->status = PCB_SUSPENDED;
                 current_process = NULL;
                 }
 
-
+            //not reached time quantum
+            else if (current_process->service_time-current_process->remaining_cpu_time < time_quantum[current_process->priority])
+            {
+               printf("PROCESS HAS NOT ran until QUANTUM YET, ran for %d and quantum is %d \n",current_process->service_time-current_process->remaining_cpu_time, time_quantum[current_process->priority]);
+            }
 
         }
 
@@ -236,46 +248,45 @@ accumulated run time at this level is equal to t1), the job will be moved to the
 
                 current_process = resumePcb(current_process);
                 //todo test if process status changes
-                printf("checking if status is resumed {SHOULD BE RESUMED}: %d\n", current_process->status);
+                printf("checking if status is resumed {SHOULD BE Running 3}: %d\n", current_process->status);
         
             }
             else{
             current_process = startPcb(current_process);
-            }
 
             response_time = timer - current_process->arrival_time;
             av_response_time += response_time;
+            }
+
         }
         //calculate quantum from time_quantum for the new process
-        if(current_process){
-            print("calculating quantum\n");
-            if (current_process->remaining_cpu_time  - time_quantum[current_process->priority] >= 0){
-                current_process->quantum = time_quantum[current_process->priority];
-            }
-            else 
+        if (current_process) {
+            printf("calculating quantum\n");
+            if (current_process->remaining_cpu_time <= time_quantum[current_process->priority])
             {
-               current_process->quantum = current_process->remaining_cpu_time;
+                current_process->quantum = current_process->remaining_cpu_time;
+                printf("REMAING TIME LESS THAN or equal QUANTUM\n quantum set to %d\n", current_process->quantum);
             }
-        printf("setting quantum to %d\n", current_process->quantum);
+            else
+            {
+                current_process->quantum = time_quantum[current_process->priority];
+                printf("REMAING TIME MORE THAN QUANTUM\n quantum set to %d\n", current_process->quantum);
 
+            }
         
         }
-        else{
-            printf("setting quantum to 1\n");
-            current_process->quantum = 1;
-        }
-        printf("sleeping \n\n current process quantum: %d\n", current_process->quantum);
-        sleep(current_process->quantum);
 
 //      iii. Let the dispatcher sleep for quantum;
         
         
 //      iv. Increment the dispatcher's timer;
-        timer += current_process->quantum;
+        timer ++;
+        sleep(1);
+        printf("SLEEP - bottom  \n timer: %d\n", timer);
         
 //      v. Go back to 2.
-    }
     
+    }
 
     // start process,  at bottom then compute quantum - its how much time is left for each process. if service time is less that time quantum then  set to service time. if service time is greater than time quantum then set to time quantum. if there is no current process then set quantum to 1. so it will catch later processes coming in. 
 
