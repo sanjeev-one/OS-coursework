@@ -73,6 +73,7 @@ int main (int argc, char *argv[])
             {
 //              A. Terminate the process;
                 terminatePcb(current_process);
+                
 
 //		        calculate and acumulate turnaround time and wait time
                 turnaround_time = timer - current_process->arrival_time;

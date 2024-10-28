@@ -34,6 +34,8 @@ struct pcb {
     int arrival_time;
     int service_time;
     int priority;
+    int quantum;
+    int stravation; //todo use
     int remaining_cpu_time;
     int status;
     struct pcb * next;
@@ -52,5 +54,7 @@ void   printPcbHdr(void);
 PcbPtr createnullPcb();
 PcbPtr enqPcb(PcbPtr, PcbPtr);
 PcbPtr deqPcb(PcbPtr*);
+PcbPtr next(PcbPtr[]);
+PcbPtr enqHeadPcb(PcbPtr, PcbPtr);
 
 #endif

@@ -70,6 +70,20 @@ PcbPtr deqPcb(PcbPtr * hPtr)
 }
 
 /*******************************************************
+ * PcbPtr enqHeadPcb (PcbPtr headofQ, PcbPtr process)
+ *    - queue process (or join queues) at front of queue
+ *
+ * returns head of queue
+ ******************************************************/
+PcbPtr enqHeadPcb(PcbPtr q, PcbPtr p)
+{
+    p->next = q;
+    return p;
+}
+
+
+
+/*******************************************************
  * PcbPtr startPcb(PcbPtr process) - start (or restart)
  *    a process
  * returns:
@@ -178,7 +192,7 @@ void printPcbHdr()
 
 }
 /***********************************************
- * void suspendPcb(PcbPtr process) - suspend a process
+ * PcbPtr suspendPcb(PcbPtr process) - suspend a process
  * returns:
  *   PcbPtr of process
  ************************************************/
@@ -199,7 +213,7 @@ PcbPtr suspendPcb(PcbPtr p)
 }
 
 /***********************************************
- * void resumePcb(PcbPtr process) - resume a process
+ * PcbPtr resumePcb(PcbPtr process) - resume a process
  * returns:
  *   PcbPtr of process
  ************************************************/
@@ -218,3 +232,29 @@ PcbPtr resumePcb(PcbPtr p)
     }
 }
 
+
+/***********************************************
+ * PcbPtr next(PcbPtr queues[]) finds the next process to run. takes in array of queues
+ * returns:
+ *   PcbPtr of process // doesnt deque pointer
+ ************************************************/
+PcbPtr next(PcbPtr queues[])
+{
+    PcbPtr p;
+    if (queues[0])
+    {
+        p = deqPcb(&queues[0]);
+        return p;
+    }
+    else if (queues[1])
+    {
+        p = deqPcb(&queues[1]);
+        return p;
+    }
+    else if (queues[2])
+    {
+        p = deqPcb(&queues[2]);
+        return p;
+    }
+    return NULL;
+}

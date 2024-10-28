@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "__config": "c",
+        "memory_resource": "c",
+        "iterator": "c",
+        "locale": "c"
+    }
+}
