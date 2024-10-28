@@ -24,6 +24,8 @@ PcbPtr createnullPcb()
     new_process_Ptr->arrival_time = 0;
     new_process_Ptr->service_time = 0;
     new_process_Ptr->priority = 0;
+    new_process_Ptr->quantum = 0;
+    new_process_Ptr->time_in_quantum = 0;
     new_process_Ptr->remaining_cpu_time = 0;
     new_process_Ptr->status = PCB_UNINITIALIZED;
     new_process_Ptr->next = NULL;
@@ -150,7 +152,7 @@ PcbPtr terminatePcb(PcbPtr p)
  *    PcbPtr of process
  ******************************************************/
 PcbPtr printPcb(PcbPtr p) //todo check
-{
+{ 
     printf("%7d%7d%7d%9d%7d  ",
         (int) p->pid, p->arrival_time, p->service_time,p->priority,
             p->remaining_cpu_time);

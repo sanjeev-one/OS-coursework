@@ -35,6 +35,7 @@ struct pcb {
     int service_time;
     int priority;
     int quantum;
+    int time_in_quantum;
     int stravation; //todo use
     int remaining_cpu_time;
     int status;
