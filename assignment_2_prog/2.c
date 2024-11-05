@@ -147,9 +147,33 @@ int main (int argc, char *argv[])
             }
         }
 
+        //check if the front of the level 2 queue has not been scheduled to run for W units of time since the last time it is pre-empted
+        if (level2_queue && level2_queue->starvation >= W)
+        {
+            printf("\nSTARVATION DETECTED - Moving processes to Level 0\n");
+            printf("Process in Level 2 waited %d units without running\n", level2_queue->starvation);
+    
+            //move all jobs in level 2 to the end of the level 0 queue
+        
+            while (level2_queue)
+            {
+                process = deqPcb(&level2_queue);
+                process->priority = 0;
+                process->starvation = 0; // Reset starvation counter
+                level0_queue = enqPcb(level0_queue, process);
+            }
+        }
+
         // Increment starvation counters for waiting processes
         if (level1_queue) {
             PcbPtr temp = level1_queue;
+            while (temp) {
+                temp->starvation++;
+                temp = temp->next;
+            }
+        }
+        if (level2_queue) {
+            PcbPtr temp = level2_queue;
             while (temp) {
                 temp->starvation++;
                 temp = temp->next;
