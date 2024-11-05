@@ -1,10 +1,27 @@
-/*
-    COMP3520 Assingment 2 - Multi Level Feedback Queue
+/************************************************************************************************************************
 
-    usage:
+    ** File Description **
+    File: scheduler.c
+    Purpose: Implements a multi-level feedback queue (MLFQ) scheduler for the COMP3520 Operating Systems course.
+    Author: Sanjeev Chauhan
+    Institution: University of Sydney
+    Date: 19 October 2024
+    Assignment: COMP3520 Assignment 2 - Multi Level Feedback Queue (MLFQ)
+    
+    This program simulates a multi-level feedback queue scheduler, reading processes from an input file and distributing them across different priority levels.
+    Each process has a time quantum for each priority level, which diminishes as processes are demoted between queues. The scheduler handles starvation by promoting
+    processes from lower-priority queues if they wait beyond a specified threshold. The program calculates and outputs average turnaround time, wait time, and response time for all processes.
 
-        make
-*/
+    ** Revision history **
+    
+    Current version: 1.0
+    Date: 19 October 2024
+
+    Contributors:
+    1. Sanjeev Chauhan, Student, University of Sydney, NSW 2006, Australia
+   
+
+ ************************************************************************************************************************/
 
 /* Include files */
 #include "scheduler.h"
@@ -292,12 +309,10 @@ accumulated run time at this level is equal to t1), the job will be moved to the
                 }
             }
 
-                //todo do i need to do this here
-//          a. Decrement the process's remaining_cpu_time variable by quantum;
-
+              
 
 //          b. If the process's allocated time has expired:
-            if (current_process->remaining_cpu_time <= 0) //todo try ==
+            if (current_process->remaining_cpu_time <= 0) 
             {
 //              A. Terminate the process;
                 terminatePcb(current_process);
@@ -330,16 +345,13 @@ accumulated run time at this level is equal to t1), the job will be moved to the
                     queues[2] = enqPcb(queues[2], suspendPcb(current_process));
                 }
                 //printf("checking if status is suspended (4): %d\n", current_process->status);
-
-            
-                //current_process->status = PCB_SUSPENDED;
                 current_process = NULL;
                 }
 
-            //not reached time quantum
+            //the process has not run until quantum
             else if (current_process->time_in_quantum < time_quantum[current_process->priority])
             {
-               printf("PROCESS HAS NOT ran until QUANTUM YET, ran for %d and quantum is %d \n",current_process->time_in_quantum, time_quantum[current_process->priority]);
+               //printf("PROCESS HAS NOT ran until QUANTUM YET, ran for %d and quantum is %d \n",current_process->time_in_quantum, time_quantum[current_process->priority]);
             }
 
         }
@@ -348,8 +360,7 @@ accumulated run time at this level is equal to t1), the job will be moved to the
         if (!current_process && (level0_queue || level1_queue || level2_queue))
         {
 //          Dequeue the process at the head of the queue, set it as currently running and start it
-            // find what queue to get the process from
-
+            // find what queue to get the process from using custom funciton next
             current_process = next(queues);
            
             //if the process is suspended, resume it
@@ -359,51 +370,42 @@ accumulated run time at this level is equal to t1), the job will be moved to the
 
                 current_process = resumePcb(current_process);
                 current_process->time_in_quantum = 0;
-                //todo test if process status changes
-                printf("checking if status is resumed {SHOULD BE Running 3}: %d\n", current_process->status);
+                //printf("checking if status is resumed {SHOULD BE Running 3}: %d\n", current_process->status);
         
             }
+            //if the process is not suspended, start it
             else{
             current_process = startPcb(current_process);
             current_process->time_in_quantum = 0;
-
             response_time = timer - current_process->arrival_time;
             av_response_time += response_time;
             }
-
+            //calculate quantum for new process
              //printf("calculating quantum\n");
             if (current_process->remaining_cpu_time <= time_quantum[current_process->priority])
             {
                 current_process->quantum = current_process->remaining_cpu_time;
-                printf("REMAING TIME LESS THAN or equal QUANTUM\n quantum set to %d\n", current_process->quantum);
+                //printf("REMAING TIME LESS THAN or equal QUANTUM\n quantum set to %d\n", current_process->quantum);
             }
             else
             {
                 current_process->quantum = time_quantum[current_process->priority];
-                printf("restart: REMAING TIME MORE THAN QUANTUM\n quantum set to %d\n", current_process->quantum);
+                //printf("restart: REMAING TIME MORE THAN QUANTUM\n quantum set to %d\n", current_process->quantum);
 
             }
 
         }
-        //calculate quantum from time_quantum for the new process
-        //if (current_process) {
-           //used to calculate quantum here
-        
-      //  }
+      
 
 //      iii. Let the dispatcher sleep for quantum;
-        
-        
 //      iv. Increment the dispatcher's timer;
+
         timer ++;
         sleep(1);
-        //printf("SLEEP - bottom  \n timer: %d\n", timer);
         
-//      v. Go back to 2.
     
     }
 
-    // start process,  at bottom then compute quantum - its how much time is left for each process. if service time is less that time quantum then  set to service time. if service time is greater than time quantum then set to time quantum. if there is no current process then set quantum to 1. so it will catch later processes coming in. 
 
 //  print out average turnaround time and average wait time
     av_turnaround_time = av_turnaround_time / n;
@@ -415,11 +417,6 @@ accumulated run time at this level is equal to t1), the job will be moved to the
     
 //  3. Terminate the FCFS dispatcher
     exit(EXIT_SUCCESS);
-
-
-
-
-    // problem, when there is time waiting before the first process, then the quantum is set to be the time waiting and the time_quatum.
 
 }
 
