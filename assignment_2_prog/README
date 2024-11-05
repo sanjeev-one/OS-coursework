@@ -1,0 +1,59 @@
+
+
+## Makefile Instructions
+
+### 1. Running the Scheduler with Default Behavior
+
+To run the scheduler using the default setup, simply execute:
+```bash
+make
+```
+
+This command will:
+- Check if an input file named `random` exists.
+- If `random` does not exist, it will compile and run `random.c` to generate this file.
+- Compile the main components (`sigtrap.c`, `pcb.c`, `2.c`) to produce the `process` and `2` executables.
+- Run the `2` executable with the `test1` argument, using `random` as the default input file for the scheduler.
+
+---
+
+### 2. Specifying a Custom Input File
+
+If you want to run the scheduler with a custom input file instead of `random`, use:
+```bash
+make run_with_input
+```
+
+This command will:
+- Prompt you to enter the name of your custom input file (for example, `my_input_file`).
+- If you press Enter without entering a filename, it will default to using `random`.
+- Verify if the specified input file exists.
+- Run the  scheduler `2` executable with your chosen input file.
+
+
+
+---
+
+### 3. Generating a New `random` Input File Manually
+
+To manually generate a new `random` input file without running the scheduler:
+```bash
+make run_random
+```
+
+This command will:
+- Compile and run `random.c` to generate a new `random` file.
+- Prompt you to input parameters such as the number of jobs and distribution characteristics.
+- Save the generated job list in the `random` file.
+
+---
+
+### 4. Cleaning Up Generated Files
+
+To remove all generated executable files (`process`, `2`, and `random`):
+```bash
+make clean
+```
+
+This command will:
+- Delete the `process`, `2`, and `random` executable files to clean up your directory.

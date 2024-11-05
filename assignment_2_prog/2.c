@@ -1,10 +1,9 @@
 /*
-    COMP3520 Exercise 7 - FCFS Dispatcher
+    COMP3520 Assingment 2 - Multi Level Feedback Queue
 
     usage:
 
-        ./fcfs <TESTFILE>
-        where <TESTFILE> is the name of a job list
+        make
 */
 
 /* Include files */
@@ -12,35 +11,37 @@
 
 
 
-
+// Main function: Entry point of the program
 int main (int argc, char *argv[])
 {
     /*** Main function variable declarations ***/
-
+    // Declare pointers for process control blocks (PCBs)
     PcbPtr job_dispatch_queue = NULL;
     PcbPtr round_robin_queue = NULL;
 
+    // Array to hold queues for different priority levels
     PcbPtr queues[3] = {NULL, NULL, NULL};
     #define level0_queue queues[0]
     #define level1_queue queues[1]
     #define level2_queue queues[2]
 
+    // File stream for input list
     FILE * input_list_stream = NULL;
     
-    PcbPtr current_process = NULL;
-    PcbPtr process = NULL;
-    int timer = 0;
+    // Current process and timer variables
+    PcbPtr current_process = NULL; // Pointer to the current running process
+    PcbPtr process = NULL; // Pointer to a temporary process
+    int timer = 0; // Timer variable
 
-    int turnaround_time, response_time;
-    double av_turnaround_time = 0.0, av_wait_time = 0.0, av_response_time = 0.0;
-    int n = 0;
+    int turnaround_time, response_time; // Variables to hold turnaround and response times
+    double av_turnaround_time = 0.0, av_wait_time = 0.0, av_response_time = 0.0; // Variables to hold average turnaround and wait times
+    int n = 0; // Variable to hold number of processes
 
-    //ask for time_quantum
-    int t0, t1, t2, W;
+    //ask for time_quantum 
+    int t0, t1, t2, W; // Variables to hold time quantum values and starvation time
     int time_quantum[3];
-    //int quantum;
 
-    
+    // Get time quantum values from user
     printf("Enter an integer value for t0: ");
     if (scanf("%d", &t0) != 1) {
         fprintf(stderr, "Error: Invalid input for t0\n");
@@ -67,7 +68,7 @@ int main (int argc, char *argv[])
     time_quantum[1] = t1;
     time_quantum[2] = t2;
 
-//  1. Populate the job_dispatch queue
+//  1. Populate the job dispatch queue from the input file
     if (argc <= 0)
     {
         fprintf(stderr, "FATAL: Bad arguments array\n");
@@ -84,7 +85,7 @@ int main (int argc, char *argv[])
         fprintf(stderr, "ERROR: Could not open \"%s\"\n", argv[1]);
         exit(EXIT_FAILURE);
     }
-
+//  Read in the job dispatch list from the input file
     while (!feof(input_list_stream)) {  // put processes into job_dispatch queue
         process = createnullPcb();
         if (fscanf(input_list_stream,"%d, %d, %d",
@@ -103,11 +104,10 @@ int main (int argc, char *argv[])
     //printf(stderr, "INFO: Read %d processes from \"%s\"\n", n, argv[1]);
 
 
-//  2. Whenever there is a running process or the job_dispatch queue or round robin queue is not empty:
+//  2. Whenever there is a running process or the job_dispatch queue or round robin queue is not empty: 
 
     while (current_process || job_dispatch_queue || level0_queue || level1_queue || level2_queue)
     {
-        //printf("top \n timer: %d\n", timer);
 
         //Unload any arrived pending processes from the Job Dispatch queue  dequeue  process  from  Job  Dispatch  queue  and  enqueue  on  Round  Robin queue;
         while (job_dispatch_queue && job_dispatch_queue->arrival_time <= timer)
@@ -117,7 +117,8 @@ int main (int argc, char *argv[])
             queues[process->priority] = enqPcb(queues[process->priority], process);
         }
 
-        //starvation stuff
+        //starvation detection
+
         /*When the job in front of the Level-1 queue has not been scheduled to run for W  
         units of time since the last time it is pre-empted, all jobs in Level-1 and Level- 2
          queues are moved to the end (or tail) of the Level-0 queue (i.e., their priorities 
@@ -181,9 +182,10 @@ int main (int argc, char *argv[])
         }
 
 
-//      i. If there is a currently running process;
+//    i. If there is a running process:
+
         if (current_process) //check if there is high priority process
-        {   
+        {   // adjust time in quantum and remaining cpu time
             current_process->time_in_quantum ++;
             current_process->remaining_cpu_time --; // timer changes by 1 each step //todo maybe move this to before premption swamp 
             //printf("just decremented time \n Process %d is running with %d units of time left\n", current_process->pid, current_process->remaining_cpu_time);
@@ -209,19 +211,22 @@ accumulated run time at this level is equal to t1), the job will be moved to the
                 // if the job has not used its time quantum, it will be placed at the front of the level 1 queue
                 if (current_process->remaining_cpu_time > time_quantum[1]) //todo can be current_process->quantum
                 {
+                    // downgrade to level 2
                     current_process->priority = 2;
                     queues[2] = enqPcb(queues[2], suspendPcb(current_process));
                 }
                 else
                 {
-                   //current_process->priority = 1;
+                    // downgrade to front of level 1
                     queues[1] = enqHeadPcb(queues[1], suspendPcb(current_process));
                 }
-                //current_process->status = PCB_SUSPENDED;
+                //start level 0 process
                 current_process = deqPcb(&level0_queue);
                 current_process = startPcb(current_process);
                 current_process->time_in_quantum = 0;
 
+
+                //recalculate quantum for new process
                 //printf("calculating quantum for new higher process\n");
                 if (current_process->remaining_cpu_time <= time_quantum[current_process->priority])
                 {
@@ -238,6 +243,9 @@ accumulated run time at this level is equal to t1), the job will be moved to the
                     //printf("current process priority should be 0: %d\n", current_process->priority);
                     printf("SWAPPED TO HIGHER PRIORIY, new quantum is %d \n", current_process->quantum);
             }
+
+
+            //when running a level 2 process, check level 0 and level 1 queues for a higher process
            }
             if (current_process->priority == 2){
                 //level 2 queue so check that level 0 and level 1 are empty
@@ -246,22 +254,22 @@ accumulated run time at this level is equal to t1), the job will be moved to the
                     // downgrade
                     if (current_process->remaining_cpu_time > time_quantum[2])
                     {
+                        // downgrade to level 2
                         queues[2] = enqPcb(queues[2], suspendPcb(current_process));
 
                     }
                     else 
                     {
+                        // downgrade to front of level 2
         
                         queues[2] = enqHeadPcb(queues[2], suspendPcb(current_process));
                     }
                 
-                    //current_process->status = PCB_SUSPENDED;
-                    current_process = next(queues);
-                    //start process imediately
+                    current_process = next(queues); //next function returns the next highest priority process
+                    //start process immediately
                     current_process = startPcb(current_process);
-                    current_process->time_in_quantum = 0;
-
-                    //printf("calculating quantum\n");
+                    current_process->time_in_quantum = 0; //reset time in quantum
+                //recalculate quantum for new process
                 if (current_process->remaining_cpu_time <= time_quantum[current_process->priority])
                 {
                     current_process->quantum = current_process->remaining_cpu_time;
@@ -281,7 +289,7 @@ accumulated run time at this level is equal to t1), the job will be moved to the
                 }
             }
 
-
+                //todo do i need to do this here
 //          a. Decrement the process's remaining_cpu_time variable by quantum;
 
 
