@@ -7,18 +7,27 @@
         where <OUTPUT_FILE> is the filename for the job list file
 */
 
+
 /************************************************************************************************************************
 
     ** Revision history **
 
-    Current version: 1.0
-    Date: 7 September 2019
+    Current version: 1.1
+    Date: 29 October 2024
 
     1.0: Original version
+    1.1: Added random priority generation
 
     Contributors:
+ 
     1. COMP3520 teaching staff
        Centre for Distributed and High Performance Computing
+       School of Computer Science
+       The University of Sydney
+       NSW 2006
+       Australia
+    2. Sanjeev Chauhan
+       Student
        School of Computer Science
        The University of Sydney
        NSW 2006
@@ -44,7 +53,7 @@ int main (int argc, char *argv[])
     float lambda_arrival = 0;
     float lambda_service = 0;
     double L = 0, p = 0, u = 0;
-    int i, k = 0, x = 0, y = 0;
+    int i, k = 0, x = 0, y = 0, priority = 0;
 
     if (argc <= 0)
     {
@@ -103,8 +112,11 @@ int main (int argc, char *argv[])
         u = rand()/(double)((long long)RAND_MAX+1);
         y = 1 + floor(log(1 - u)/(-1 * lambda_service));
 
+        /* Generate a random priority between 0 and 2 */
+        priority = rand() % 3;
+
         /* Save the generated values to the output file */
-        fprintf(output_stream, "%d, %d\n", x, y);
+        fprintf(output_stream, "%d, %d, %d\n", x, y, priority);
     }
     fclose(output_stream);
     exit(EXIT_SUCCESS);    
