@@ -36,7 +36,7 @@ int main (int argc, char *argv[])
     int n = 0;
 
     //ask for time_quantum
-    int t0, t1, t2;
+    int t0, t1, t2, W;
     int time_quantum[3];
     //int quantum;
 
@@ -54,6 +54,12 @@ int main (int argc, char *argv[])
     printf("Enter an integer value for t2: ");
     if (scanf("%d", &t2) != 1) {
         fprintf(stderr, "Error: Invalid input for t2\n");
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Enter an integer value for W: ");
+    if (scanf("%d", &W) != 1) {
+        fprintf(stderr, "Error: Invalid input for W\n");
         exit(EXIT_FAILURE);
     }
 
@@ -112,6 +118,43 @@ int main (int argc, char *argv[])
         }
 
         //starvation stuff
+        /*When the job in front of the Level-1 queue has not been scheduled to run for W  
+        units of time since the last time it is pre-empted, all jobs in Level-1 and Level- 2
+         queues are moved to the end (or tail) of the Level-0 queue (i.e., their priorities 
+          are upgraded to 0). Level-1 jobs are placed before Level-2 jobs and jobs at the  
+          same level will maintain their order.*/
+
+        //check if the front of the level 1 queue has not been scheduled to run for W units of time since the last time it is pre-empted
+        if (level1_queue && level1_queue->starvation >= W)
+        {
+            printf("\nSTARVATION DETECTED - Moving processes to Level 0\n");
+            printf("Process in Level 1 waited %d units without running\n", level1_queue->starvation);
+    
+            //move all jobs in level 1 and level 2 to the end of the level 0 queue
+            while (level1_queue)
+            {
+                process = deqPcb(&level1_queue);
+                process->priority = 0;
+                process->starvation = 0; // Reset starvation counter
+
+                level0_queue = enqPcb(level0_queue, process);
+            }
+            while (level2_queue)
+            {
+                process = deqPcb(&level2_queue);
+                process->priority = 0;
+                level0_queue = enqPcb(level0_queue, process);
+            }
+        }
+
+        // Increment starvation counters for waiting processes
+        if (level1_queue) {
+            PcbPtr temp = level1_queue;
+            while (temp) {
+                temp->starvation++;
+                temp = temp->next;
+            }
+        }
 
 
 //      i. If there is a currently running process;
