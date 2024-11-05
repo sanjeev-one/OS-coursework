@@ -15,25 +15,26 @@ process: sigtrap.c
 
 # Check if the input file "random" exists, and create it if it doesn't
 check_random_exists:
-	@if [ ! -f "random" ]; then \
+	@if [ ! -f "random_input" ]; then \
 		make generate_random_file; \
 	fi
 
 # Compile and run random.c to generate "random" input file if needed
 generate_random_file: random.c
+	rm -rf random
 	$(CC) -o random random.c -lm  # Add -lm to link the math library
-	./random random
+	./random random_input
 
 # Run the 2 executable with the "random" input file by default
 2_run: 2 check_random_exists
-	./2 random
+	./2 random_input
 
 # Option to specify a custom input file
 run_with_input:
-	@echo "Please enter the name of your input file (default: random): "; \
+	@echo "Please enter the name of your input file (default: random_input): "; \
 	read input_file; \
 	if [ -z "$$input_file" ]; then \
-		input_file="random"; \
+		input_file="random_input"; \
 	fi; \
 	if [ ! -f "$$input_file" ]; then \
 		echo "Error: Input file '$$input_file' does not exist."; \
@@ -44,8 +45,8 @@ run_with_input:
 # Option to just run random.c to create a new "random" input file
 run_random: random.c
 	$(CC) -o random random.c -lm  # Add -lm to link the math library
-	./random random
+	./random random_input
 
 # Clean up generated files
 clean:
-	rm -f process 2 random
+	rm -f process 2 random random_input
