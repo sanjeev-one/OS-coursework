@@ -3,7 +3,7 @@ CC = gcc
 CFLAGS = -o
 
 # Targets
-all: check_random_exists process 2_run
+all: process check_random_exists  2_run
 
 # Compile sigtrap.c to create process executable
 process: sigtrap.c
@@ -21,9 +21,9 @@ check_random_exists:
 
 # Compile and run random.c to generate "random" input file if needed
 generate_random_file: random.c
-	rm -rf random
-	$(CC) -o random random.c -lm  # Add -lm to link the math library
-	./random random_input
+	@rm -rf random
+	@$(CC) -o random random.c -lm  # Add -lm to link the math library
+	@./random random_input
 
 # Run the 2 executable with the "random" input file by default
 2_run: 2 check_random_exists
