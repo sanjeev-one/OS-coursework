@@ -5,9 +5,6 @@ CFLAGS = -o
 # Targets
 all: check_random_exists process 2_run
 
-# Ensure process is always compiled by marking it as phony
-.PHONY: process
-
 # Compile sigtrap.c to create process executable
 process: sigtrap.c
 	$(CC) $(CFLAGS) process sigtrap.c
@@ -24,7 +21,7 @@ check_random_exists:
 
 # Compile and run random.c to generate "random" input file if needed
 generate_random_file: random.c
-	$(CC) -o random random.c
+	$(CC) -o random random.c -lm  # Add -lm to link the math library
 	./random random
 
 # Run the 2 executable with the "random" input file by default
@@ -46,7 +43,7 @@ run_with_input:
 
 # Option to just run random.c to create a new "random" input file
 run_random: random.c
-	$(CC) -o random random.c
+	$(CC) -o random random.c -lm  # Add -lm to link the math library
 	./random random
 
 # Clean up generated files
