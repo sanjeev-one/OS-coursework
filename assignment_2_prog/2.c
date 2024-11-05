@@ -100,6 +100,9 @@ int main (int argc, char *argv[])
         job_dispatch_queue = enqPcb(job_dispatch_queue, process);
         n++;
     }
+
+    fclose(input_list_stream);
+
     
     //printf(stderr, "INFO: Read %d processes from \"%s\"\n", n, argv[1]);
 
