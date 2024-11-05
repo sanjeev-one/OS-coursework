@@ -3,15 +3,15 @@ CC = gcc
 CFLAGS = -o
 
 # Targets
-all: process check_random_exists  2_run
+all: process check_random_exists  scheduler_run
 
 # Compile sigtrap.c to create process executable
 process: sigtrap.c
 	$(CC) $(CFLAGS) process sigtrap.c
 
-# Compile pcb.c and 2.c to create the 2 executable
-2: pcb.c 2.c
-	$(CC) $(CFLAGS) 2 pcb.c 2.c
+# Compile pcb.c and scheduler.c to create the scheduler executable
+scheduler: pcb.c scheduler.c
+	$(CC) $(CFLAGS) scheduler pcb.c scheduler.c
 
 # Check if the input file "random" exists, and create it if it doesn't
 check_random_exists:
@@ -25,9 +25,9 @@ generate_random_file: random.c
 	@$(CC) -o random random.c -lm  # Add -lm to link the math library
 	@./random random_input
 
-# Run the 2 executable with the "random" input file by default
-2_run: 2 check_random_exists
-	./2 random_input
+# Run the scheduler executable with the "random" input file by default
+scheduler_run: scheduler check_random_exists
+	./scheduler random_input
 
 # Option to specify a custom input file
 run_with_input:
@@ -40,7 +40,7 @@ run_with_input:
 		echo "Error: Input file '$$input_file' does not exist."; \
 		exit 1; \
 	fi; \
-	./2 $$input_file
+	./scheduler $$input_file
 
 # Option to just run random.c to create a new "random" input file
 run_random: random.c
@@ -49,4 +49,4 @@ run_random: random.c
 
 # Clean up generated files
 clean:
-	rm -f process 2 random random_input
+	rm -f process scheduler random random_input
