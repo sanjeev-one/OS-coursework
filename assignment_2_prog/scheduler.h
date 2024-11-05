@@ -1,7 +1,7 @@
-/* Main include header file for FCFS dispatcher */
+/* Main include header file for MFPQ scheduler */
 
-#ifndef FCFS_MAIN
-#define FCFS_MAIN
+#ifndef MFPQ_MAIN
+#define MFPQ_MAIN
 
 /* Include files */
 #include <stdio.h>
