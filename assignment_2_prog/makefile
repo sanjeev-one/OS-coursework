@@ -5,6 +5,9 @@ CFLAGS = -o
 # Targets
 all: check_random_exists process 2_run
 
+# Ensure process is always compiled by marking it as phony
+.PHONY: process
+
 # Compile sigtrap.c to create process executable
 process: sigtrap.c
 	$(CC) $(CFLAGS) process sigtrap.c
