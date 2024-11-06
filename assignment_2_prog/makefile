@@ -31,10 +31,10 @@ scheduler_run: scheduler check_random_exists
 
 # Option to specify a custom input file (only checks process and scheduler)
 run_with_input: process scheduler
-	@echo "Please enter the name of your input file (default: random_input): "; \
+	@echo "Please enter the name of your input file (default: test1): "; \
 	read input_file; \
 	if [ -z "$$input_file" ]; then \
-		input_file="random_input"; \
+		input_file="test1"; \
 	fi; \
 	if [ ! -f "$$input_file" ]; then \
 		echo "Error: Input file '$$input_file' does not exist."; \
