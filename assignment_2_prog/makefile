@@ -3,7 +3,7 @@ CC = gcc
 CFLAGS = -o
 
 # Targets
-all: process scheduler check_random_exists
+all: process scheduler_run
 
 # Compile sigtrap.c to create process executable
 process: sigtrap.c
