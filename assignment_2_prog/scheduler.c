@@ -148,8 +148,8 @@ int main (int argc, char *argv[])
         //check if the front of the level 1 queue has not been scheduled to run for W units of time since the last time it is pre-empted
         if (level1_queue && level1_queue->starvation >= W)
         {
-            printf("\nSTARVATION DETECTED - Moving processes to Level 0\n");
-            printf("Process in Level 1 waited %d units without running\n", level1_queue->starvation);
+           // printf("\nSTARVATION DETECTED - Moving processes to Level 0\n");
+            //printf("Process in Level 1 waited %d units without running\n", level1_queue->starvation);
     
             //move all jobs in level 1 and level 2 to the end of the level 0 queue
             while (level1_queue)
@@ -171,8 +171,8 @@ int main (int argc, char *argv[])
         //check if the front of the level 2 queue has not been scheduled to run for W units of time since the last time it is pre-empted
         if (level2_queue && level2_queue->starvation >= W)
         {
-            printf("\nSTARVATION DETECTED - Moving processes to Level 0\n");
-            printf("Process in Level 2 waited %d units without running\n", level2_queue->starvation);
+            //printf("\nSTARVATION DETECTED - Moving processes to Level 0\n");
+            //printf("Process in Level 2 waited %d units without running\n", level2_queue->starvation);
     
             //move all jobs in level 2 to the end of the level 0 queue
         
@@ -251,17 +251,17 @@ accumulated run time at this level is equal to t1), the job will be moved to the
                 if (current_process->remaining_cpu_time <= time_quantum[current_process->priority])
                 {
                     current_process->quantum = current_process->remaining_cpu_time;
-                    printf("h:REMAING TIME LESS THAN or equal QUANTUM\n quantum set to %d\n", current_process->quantum);
+                    //printf("h:REMAING TIME LESS THAN or equal QUANTUM\n quantum set to %d\n", current_process->quantum);
                 }
                 else
                 {
                     current_process->quantum = time_quantum[current_process->priority];
-                    printf("h:REMAING TIME MORE THAN QUANTUM\n quantum set to %d\n", current_process->quantum);
+                    //printf("h:REMAING TIME MORE THAN QUANTUM\n quantum set to %d\n", current_process->quantum);
 
                 }
 
                     //printf("current process priority should be 0: %d\n", current_process->priority);
-                    printf("SWAPPED TO HIGHER PRIORIY, new quantum is %d \n", current_process->quantum);
+                    //printf("SWAPPED TO HIGHER PRIORIY, new quantum is %d \n", current_process->quantum);
             }
 
 
@@ -293,18 +293,18 @@ accumulated run time at this level is equal to t1), the job will be moved to the
                 if (current_process->remaining_cpu_time <= time_quantum[current_process->priority])
                 {
                     current_process->quantum = current_process->remaining_cpu_time;
-                    printf("h2REMAING TIME LESS THAN or equal QUANTUM\n quantum set to %d\n", current_process->quantum);
+                    //printf("h2REMAING TIME LESS THAN or equal QUANTUM\n quantum set to %d\n", current_process->quantum);
                 }
                 else
                 {
                     current_process->quantum = time_quantum[current_process->priority];
-                    printf("h2REMAING TIME MORE THAN QUANTUM\n quantum set to %d\n", current_process->quantum);
+                    //printf("h2REMAING TIME MORE THAN QUANTUM\n quantum set to %d\n", current_process->quantum);
 
                 }
 
-                        printf("current process priority should be 1 or 0: %d\n", current_process->priority);
+                       // printf("current process priority should be 1 or 0: %d\n", current_process->priority);
 
-                        printf("SWAPPED TO HIGHER PRIORIY, new quantum is %d \n", current_process->quantum);
+                        //printf("SWAPPED TO HIGHER PRIORIY, new quantum is %d \n", current_process->quantum);
 
                 }
             }
