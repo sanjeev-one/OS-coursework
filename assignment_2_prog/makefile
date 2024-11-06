@@ -1,6 +1,6 @@
 # Variables
 CC = gcc
-CFLAGS = -o
+CFLAGS = -o -g -Wall
 
 # Targets
 all: process scheduler check_random_exists
